@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Meeting Time Finder</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-title">
+      <span class="logo">🕒</span>
+      <h1>Meeting Time Finder</h1>
+    </div>
+    <div class="your-zone">You: <strong id="your-zone-label">—</strong></div>
+  </header>
+
+  <main>
+    <section class="field-group">
+      <label for="prospect-name">Prospect name</label>
+      <input id="prospect-name" type="text" placeholder="e.g. Alex from Acme Co." autocomplete="off" />
+    </section>
+
+    <section class="field-group">
+      <label for="prospect-tz">Prospect's time zone or city</label>
+      <input id="prospect-tz" type="text" list="tz-list" placeholder="Start typing a city or zone…" autocomplete="off" />
+      <datalist id="tz-list"></datalist>
+      <div class="tz-hint" id="tz-hint"></div>
+    </section>
+
+    <section class="save-row">
+      <input type="checkbox" id="save-prospect" checked />
+      <label for="save-prospect">Remember this prospect</label>
+    </section>
+
+    <section class="recent-row" id="recent-row" hidden>
+      <span class="recent-label">Recent:</span>
+      <div class="chips" id="recent-chips"></div>
+    </section>
+
+    <section class="options-row">
+      <div class="field-group compact">
+        <label for="duration">Duration</label>
+        <select id="duration">
+          <option value="15">15 min</option>
+          <option value="30" selected>30 min</option>
+          <option value="45">45 min</option>
+          <option value="60">60 min</option>
+        </select>
+      </div>
+      <button type="button" id="toggle-advanced" class="link-btn">Working hours ▾</button>
+    </section>
+
+    <section class="advanced" id="advanced-panel" hidden>
+      <div class="hours-row">
+        <span class="hours-label">You</span>
+        <select id="user-start"></select>
+        <span>to</span>
+        <select id="user-end"></select>
+      </div>
+      <div class="hours-row">
+        <span class="hours-label">Prospect</span>
+        <select id="other-start"></select>
+        <span>to</span>
+        <select id="other-end"></select>
+      </div>
+    </section>
+
+    <button type="button" id="find-btn" class="primary-btn">Find best meeting times</button>
+
+    <section id="results" class="results" hidden>
+      <div class="results-header">
+        <span>Best times in the next 7 days</span>
+      </div>
+      <div id="results-list" class="results-list"></div>
+    </section>
+
+    <p id="empty-state" class="empty-state" hidden>
+      No overlapping working hours in the next 7 days. Try widening the working hours above.
+    </p>
+  </main>
+
+  <script src="../lib/timezones.js"></script>
+  <script src="../lib/engine.js"></script>
+  <script src="../lib/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
