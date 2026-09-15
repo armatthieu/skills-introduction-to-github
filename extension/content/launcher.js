@@ -1,7 +1,8 @@
-/* Injects a small floating launcher + panel into calendar.google.com so
-   users can find the best meeting time without leaving the tab. Reuses the
-   same TZKit / MeetingEngine / MeetingStorage logic as the popup, just with
-   a lighter-weight inline UI. */
+/* Injects a small floating launcher + panel into Google Calendar, Gmail,
+   and Google Meet so users can find the best meeting time without leaving
+   the tab — while drafting an email, right before joining a call, or while
+   creating an event. Reuses the same TZKit / MeetingEngine / MeetingStorage
+   logic as the popup, just with a lighter-weight inline UI. */
 
 (function () {
   if (window.__mtfInjected) return;

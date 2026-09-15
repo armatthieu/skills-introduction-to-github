@@ -133,3 +133,31 @@
 .mtf-slot-actions button.mtf-primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
 
 .mtf-empty { font-size: 11px; color: #5f6368; text-align: center; padding: 10px; }
+
+/* Gmail inline time-zone conversion badge */
+.mtf-time-convert {
+  display: inline-block;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #1a73e8;
+  background: #eaf1fd;
+  border-radius: 4px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* Google Meet persistent time-zone confirmation badge */
+#mtf-meet-badge {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  background: rgba(32, 33, 36, 0.75);
+  color: #fff;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  z-index: 2147483000;
+  pointer-events: none;
+  letter-spacing: 0.01em;
+}

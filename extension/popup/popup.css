@@ -33,6 +33,14 @@ body {
 .logo { font-size: 18px; }
 .your-zone { font-size: 11px; opacity: 0.9; text-align: right; }
 
+.surfaces-note {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--bg-soft);
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
 main { padding: 14px 16px 16px; }
 
 .field-group { margin-bottom: 12px; }
