@@ -95,8 +95,9 @@ extension/
   lib/
     timezones.js         IANA time zone list + formatting helpers (TZKit)
     engine.js            Slot-finding + scoring logic (MeetingEngine)
-    storage.js           chrome.storage wrapper for prospects/prefs/last search
+    storage.js           chrome.storage wrapper for prospects/prefs/last search/usage
     contact-parser.js    Guesses name + company from an email (ContactParser)
+    plans.js             Free/paid plan definitions (MeetingPlans) — see Monetization
   icons/                 Toolbar/extension icons
 ```
 
@@ -137,6 +138,59 @@ minute granularity):
    "here's the best time each day" rather than a wall of 15-minute
    increments.
 
+## Monetization (planned, not live)
+
+The product plan is a free tier with limited monthly findings and a short
+search window, and a paid tier with unlimited findings and a configurable
+window. `lib/plans.js` is the single place those numbers live:
+
+| | Free | Paid |
+|---|---|---|
+| Findings per month | 20 *(TBD)* | Unlimited |
+| Search window | 3 days *(TBD — "2 or 3")* | 7 days by default, configurable 2–15 *(TBD)* |
+
+Every number above is a placeholder standing in for a decision that hasn't
+been made yet. Change it in `lib/plans.js` and the search window + the
+usage cap shown in the popup/widget update everywhere automatically.
+
+**This is not real enforcement yet.** Everyone is on the `free` plan by
+default (`chrome.storage` preference `planId`), and the monthly findings
+counter lives in `chrome.storage.local` — data the browser's own owner can
+inspect and edit. Making a paid tier real requires:
+
+1. **A backend** (even a handful of serverless functions) that is the
+   source of truth for who's on which plan and how many findings/credits
+   they've used — not something that can live only in the browser.
+2. **A way to identify the user**, e.g. "Sign in with Google" via
+   `chrome.identity`.
+3. **A payment processor** — Stripe is the standard choice (handles both
+   subscriptions and one-time/credit purchases, hosted checkout so card
+   data never touches your own code, handles tax/VAT). Note: the old
+   Chrome Web Store Payments API was shut down in 2020, so there's no
+   built-in alternative.
+
+The intended flow once that exists: "Upgrade" in the popup opens a Stripe
+Checkout page → Stripe notifies the backend via webhook → the backend
+marks the user as paid → the extension calls the backend (not local
+storage) before each search to check the real entitlement.
+
+**Subscription vs. credits**: currently modeled as a monthly quota (reset
+each month, unlimited on paid) rather than a credit wallet, since that's
+simpler to build and fits continuous usage better than bursty one-off
+credit purchases. A credit-pack system remains an option — it would replace
+`monthlyFindingsLimit` with a spendable balance in `lib/plans.js` — but
+isn't built out.
+
+**Testing the paid-plan preview today**: since there's no upgrade flow yet,
+switch plans manually from the extension's console
+(`chrome://extensions` → the extension card → "service worker" / inspect
+views) with:
+```js
+chrome.storage.sync.get('mtf_prefs', (r) =>
+  chrome.storage.sync.set({ mtf_prefs: { ...r.mtf_prefs, planId: 'paid' } })
+);
+```
+
 ## Suggested next steps
 
 - Pull a saved contact's time zone automatically from a CRM connector.
@@ -144,5 +198,8 @@ minute granularity):
   `calendar.google.com` and pre-select a matching saved prospect.
 - Let users mark specific dates as unavailable (holidays, existing
   meetings) by reading `chrome.identity` + a read-only Calendar API scope.
+- Build the backend + auth + Stripe integration described above once the
+  free/paid numbers are finalized, so the plan gating in `lib/plans.js`
+  becomes real enforcement instead of a local preview.
 - Publish to the Chrome Web Store once the manual-entry flow has been
   validated with real users.

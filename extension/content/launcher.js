@@ -8,7 +8,7 @@
   if (window.__mtfInjected) return;
   window.__mtfInjected = true;
 
-  const { TZKit, MeetingEngine, MeetingStorage, ContactParser } = window;
+  const { TZKit, MeetingEngine, MeetingStorage, ContactParser, MeetingPlans } = window;
   const detectedTz = TZKit.getUserTimeZone();
 
   const launcher = document.createElement('button');
@@ -66,6 +66,8 @@
         </select>
       </div>
       <button type="button" class="mtf-find-btn" id="mtf-find">Find best meeting times</button>
+      <div id="mtf-plan-note" class="mtf-plan-note"></div>
+      <div id="mtf-limit-notice" class="mtf-limit-notice" hidden></div>
       <div id="mtf-fallback-notice" class="mtf-fallback-notice" hidden>
         ⚠ No time falls in both normal working hours in the next 7 days — showing the closest options instead.
       </div>
@@ -107,6 +109,8 @@
   const eventTitleInput = panel.querySelector('#mtf-event-title');
   const durationSelect = panel.querySelector('#mtf-duration');
   const findBtn = panel.querySelector('#mtf-find');
+  const planNoteEl = panel.querySelector('#mtf-plan-note');
+  const limitNoticeEl = panel.querySelector('#mtf-limit-notice');
   const fallbackNoticeEl = panel.querySelector('#mtf-fallback-notice');
   const staleNoticeEl = panel.querySelector('#mtf-stale-notice');
   const resultsEl = panel.querySelector('#mtf-results');
@@ -115,6 +119,27 @@
     durationSelect.value = String(prefs.durationMinutes);
     yourTzInput.value = prefs.userTimeZone || detectedTz;
   });
+
+  // Plan/usage display and gating. NOTE: there's no account system or
+  // backend yet — planId defaults to 'free' for everyone and the usage
+  // count lives in chrome.storage.local, so this previews the UX rather
+  // than enforcing a real entitlement (see lib/plans.js for why).
+  async function getCurrentPlanAndUsage() {
+    const [prefs, usage] = await Promise.all([
+      MeetingStorage.getPreferences(),
+      MeetingStorage.getUsage()
+    ]);
+    return { plan: MeetingPlans.getPlan(prefs.planId), usage };
+  }
+
+  async function refreshPlanNote() {
+    const { plan, usage } = await getCurrentPlanAndUsage();
+    planNoteEl.innerHTML = plan.monthlyFindingsLimit === Infinity
+      ? `<strong>${plan.label} plan</strong> — unlimited findings · ${plan.defaultDaysAhead}-day search window`
+      : `<strong>${plan.label} plan</strong> — ${usage.count}/${plan.monthlyFindingsLimit} findings used this month · ${plan.defaultDaysAhead}-day search window`;
+    return { plan, usage };
+  }
+  refreshPlanNote();
 
   function tzLiveHint(input, hintEl) {
     const value = input.value.trim();
@@ -272,6 +297,16 @@
       tzInput.focus();
       return;
     }
+
+    const { plan, usage } = await getCurrentPlanAndUsage();
+    if (usage.count >= plan.monthlyFindingsLimit) {
+      limitNoticeEl.textContent =
+        `You've used all ${plan.monthlyFindingsLimit} free findings this month. It resets next month, or upgrade for unlimited findings.`;
+      limitNoticeEl.hidden = false;
+      return;
+    }
+    limitNoticeEl.hidden = true;
+
     findBtn.disabled = true;
     findBtn.textContent = 'Finding times…';
 
@@ -303,7 +338,7 @@
       durationMinutes,
       userHours: prefs.userHours,
       otherHours: prefs.otherHours,
-      daysAhead: 7,
+      daysAhead: plan.defaultDaysAhead,
       maxResults: 6
     });
     renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle);
@@ -319,6 +354,8 @@
       usedFallback: result.usedFallback,
       slotsSerialized: MeetingStorage.serializeSlots(result.slots)
     });
+    await MeetingStorage.recordFinding();
+    await refreshPlanNote();
 
     findBtn.disabled = false;
     findBtn.textContent = 'Find best meeting times';

@@ -10,10 +10,14 @@
     durationMinutes: 30,
     userHours: { start: 9, end: 18 },
     otherHours: { start: 9, end: 18 },
-    userTimeZone: null // null = auto-detect from the browser
+    userTimeZone: null, // null = auto-detect from the browser
+    // No account system or backend exists yet, so this is a local stand-in
+    // for "which plan am I on" — not a real entitlement. See lib/plans.js.
+    planId: 'free'
   };
 
   const LAST_SEARCH_KEY = 'mtf_last_search';
+  const USAGE_KEY = 'mtf_usage';
 
   function hasChromeStorage() {
     return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
@@ -146,6 +150,32 @@
     }));
   }
 
+  // Monthly findings counter backing the free-plan limit in lib/plans.js.
+  // NOTE: this is a soft, local-only cap — it lives in chrome.storage.local,
+  // which the browser's own owner can inspect and edit, so it does not
+  // actually prevent someone determined from exceeding it. Real enforcement
+  // needs a backend that tracks usage server-side per authenticated user;
+  // this is scaffolding for that, not a substitute for it.
+  function currentMonthKey(date) {
+    const d = date || new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  async function getUsage() {
+    const result = await getLocal([USAGE_KEY]);
+    const usage = result[USAGE_KEY];
+    const monthKey = currentMonthKey();
+    if (!usage || usage.monthKey !== monthKey) return { monthKey, count: 0 };
+    return usage;
+  }
+
+  async function recordFinding() {
+    const usage = await getUsage();
+    const updated = { monthKey: usage.monthKey, count: usage.count + 1 };
+    await setLocal({ [USAGE_KEY]: updated });
+    return updated;
+  }
+
   global.MeetingStorage = {
     DEFAULT_PREFS,
     getProspects,
@@ -158,6 +188,8 @@
     saveLastSearch,
     clearLastSearch,
     serializeSlots,
-    deserializeSlots
+    deserializeSlots,
+    getUsage,
+    recordFinding
   };
 })(typeof window !== 'undefined' ? window : globalThis);

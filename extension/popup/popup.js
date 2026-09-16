@@ -1,5 +1,5 @@
 (function () {
-  const { TZKit, MeetingEngine, MeetingStorage, ContactParser } = window;
+  const { TZKit, MeetingEngine, MeetingStorage, ContactParser, MeetingPlans } = window;
 
   const yourTzInput = document.getElementById('your-tz');
   const yourTzHint = document.getElementById('your-tz-hint');
@@ -23,10 +23,13 @@
   const otherStartSelect = document.getElementById('other-start');
   const otherEndSelect = document.getElementById('other-end');
   const findBtn = document.getElementById('find-btn');
+  const planNote = document.getElementById('plan-note');
+  const limitNotice = document.getElementById('limit-notice');
   const fallbackNotice = document.getElementById('fallback-notice');
   const staleNotice = document.getElementById('stale-notice');
   const resultsSection = document.getElementById('results');
   const resultsList = document.getElementById('results-list');
+  const resultsHeaderLabel = document.getElementById('results-header-label');
   const emptyState = document.getElementById('empty-state');
 
   const detectedTz = TZKit.getUserTimeZone();
@@ -116,6 +119,32 @@
     userEndSelect.value = String(prefs.userHours.end);
     otherStartSelect.value = String(prefs.otherHours.start);
     otherEndSelect.value = String(prefs.otherHours.end);
+  }
+
+  // Plan/usage display and gating. NOTE: there's no account system or
+  // backend yet — planId defaults to 'free' for everyone and the usage
+  // count lives in chrome.storage.local, so this is a preview of the UX,
+  // not a real entitlement check (see lib/plans.js for why).
+  async function getCurrentPlanAndUsage() {
+    const [prefs, usage] = await Promise.all([
+      MeetingStorage.getPreferences(),
+      MeetingStorage.getUsage()
+    ]);
+    return { plan: MeetingPlans.getPlan(prefs.planId), usage };
+  }
+
+  async function refreshPlanNote() {
+    const { plan, usage } = await getCurrentPlanAndUsage();
+    const daysAhead = plan.defaultDaysAhead;
+    resultsHeaderLabel.textContent = `Best times in the next ${daysAhead} day${daysAhead === 1 ? '' : 's'}`;
+
+    if (plan.monthlyFindingsLimit === Infinity) {
+      planNote.innerHTML = `<strong>${plan.label} plan</strong> — unlimited findings · ${daysAhead}-day search window`;
+      return { plan, usage };
+    }
+    planNote.innerHTML =
+      `<strong>${plan.label} plan</strong> — ${usage.count}/${plan.monthlyFindingsLimit} findings used this month · ${daysAhead}-day search window`;
+    return { plan, usage };
   }
 
   async function loadRecentProspects() {
@@ -290,6 +319,15 @@
       return;
     }
 
+    const { plan, usage } = await getCurrentPlanAndUsage();
+    if (usage.count >= plan.monthlyFindingsLimit) {
+      limitNotice.textContent =
+        `You've used all ${plan.monthlyFindingsLimit} free findings this month. It resets next month, or upgrade for unlimited findings.`;
+      limitNotice.hidden = false;
+      return;
+    }
+    limitNotice.hidden = true;
+
     findBtn.disabled = true;
     findBtn.textContent = 'Finding times…';
 
@@ -323,7 +361,7 @@
       durationMinutes: prefs.durationMinutes,
       userHours: prefs.userHours,
       otherHours: prefs.otherHours,
-      daysAhead: 7,
+      daysAhead: plan.defaultDaysAhead,
       maxResults: 8
     });
 
@@ -340,6 +378,8 @@
       usedFallback: result.usedFallback,
       slotsSerialized: MeetingStorage.serializeSlots(result.slots)
     });
+    await MeetingStorage.recordFinding();
+    await refreshPlanNote();
 
     findBtn.disabled = false;
     findBtn.textContent = 'Find best meeting times';
@@ -349,4 +389,5 @@
 
   loadPrefs().then(loadLastSearch);
   loadRecentProspects();
+  refreshPlanNote();
 })();

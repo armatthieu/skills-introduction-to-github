@@ -13,6 +13,7 @@
     </div>
   </header>
   <div class="surfaces-note">Also active on Gmail and Google Meet — see the 🕒 button there.</div>
+  <div class="plan-note" id="plan-note"></div>
 
   <main>
     <section class="field-group">
@@ -91,6 +92,8 @@
 
     <button type="button" id="find-btn" class="primary-btn">Find best meeting times</button>
 
+    <p id="limit-notice" class="limit-notice" hidden></p>
+
     <p id="fallback-notice" class="fallback-notice" hidden>
       ⚠ No time falls in both normal working hours in the next 7 days —
       showing the closest options instead. These may be early or late for
@@ -103,7 +106,7 @@
 
     <section id="results" class="results" hidden>
       <div class="results-header">
-        <span>Best times in the next 7 days</span>
+        <span id="results-header-label">Best times</span>
       </div>
       <div id="results-list" class="results-list"></div>
     </section>
@@ -118,6 +121,7 @@
   <script src="../lib/engine.js"></script>
   <script src="../lib/storage.js"></script>
   <script src="../lib/contact-parser.js"></script>
+  <script src="../lib/plans.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
