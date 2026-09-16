@@ -49,6 +49,78 @@
     return zone.replace(/_/g, ' ').split('/').pop();
   }
 
+  function isValidTimeZone(zone) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: zone });
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  // Parses "GMT+3", "UTC-7", "+5:30", "gmt -7", bare "UTC"/"GMT" (= 0), etc.
+  // into an offset in minutes, or null if `text` isn't an offset at all.
+  function parseUtcOffsetInput(text) {
+    const trimmed = (text || '').trim();
+    if (/^(GMT|UTC)$/i.test(trimmed)) return 0;
+    const m = /^(?:GMT|UTC)?\s*([+-])\s*(\d{1,2})(?::?(\d{2}))?$/i.exec(trimmed);
+    if (!m) return null;
+    const sign = m[1] === '-' ? -1 : 1;
+    const hours = parseInt(m[2], 10);
+    const minutes = m[3] ? parseInt(m[3], 10) : 0;
+    if (hours > 14 || minutes >= 60) return null;
+    return sign * (hours * 60 + minutes);
+  }
+
+  function formatOffsetLabelFromMinutes(offsetMinutes) {
+    const sign = offsetMinutes >= 0 ? '+' : '-';
+    const abs = Math.abs(offsetMinutes);
+    const h = Math.floor(abs / 60);
+    const m = abs % 60;
+    return `GMT${sign}${h}${m ? ':' + String(m).padStart(2, '0') : ''}`;
+  }
+
+  // Resolves free-typed text to a usable IANA (or fixed-offset) zone
+  // identifier: an exact zone name, a UTC-offset shorthand like "GMT+3"
+  // (mapped to a fixed-offset "Etc/GMT" zone — note IANA's Etc/GMT names
+  // use POSIX-inverted signs internally, handled here so callers never see
+  // that), or — for a fractional offset like "+5:30" that Etc/GMT can't
+  // express — the first real zone currently sitting at that offset (which
+  // can drift across a DST boundary for that zone; a reasonable "good
+  // enough" match for a quick pick, not a substitute for naming the zone).
+  // Returns null if nothing matches.
+  function resolveTimeZoneInput(text) {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return null;
+    if (isValidTimeZone(trimmed) && getAllTimeZones().includes(trimmed)) return trimmed;
+
+    const offsetMinutes = parseUtcOffsetInput(trimmed);
+    if (offsetMinutes === null) return null;
+
+    if (offsetMinutes === 0) return 'UTC';
+
+    if (offsetMinutes % 60 === 0) {
+      const hours = offsetMinutes / 60;
+      if (hours >= -12 && hours <= 14) {
+        const etcZone = `Etc/GMT${hours > 0 ? '-' : '+'}${Math.abs(hours)}`;
+        if (isValidTimeZone(etcZone)) return etcZone;
+      }
+    }
+
+    const label = formatOffsetLabelFromMinutes(offsetMinutes);
+    return getAllTimeZones().find((z) => formatOffsetLabel(z) === label) || null;
+  }
+
+  // Display label for a zone that's friendly for both real IANA zones
+  // ("Tokyo (GMT+9)") and the fixed-offset zones resolveTimeZoneInput can
+  // produce (plain "GMT+3", not the confusing "Etc/GMT-3" identifier).
+  function friendlyZoneLabel(zone) {
+    const m = /^Etc\/GMT([+-])(\d{1,2})$/.exec(zone);
+    if (m) return `GMT${m[1] === '-' ? '+' : '-'}${m[2]}`;
+    if (zone === 'UTC' || zone === 'Etc/UTC') return 'UTC';
+    return `${friendlyZoneName(zone)} (${formatOffsetLabel(zone)})`;
+  }
+
   // Returns { hour, minute, weekday (0=Sun..6=Sat), dateKey 'YYYY-MM-DD' } for
   // the given instant as observed in `timeZone`.
   function getZonedParts(date, timeZone) {
@@ -109,6 +181,10 @@
     getUserTimeZone,
     formatOffsetLabel,
     friendlyZoneName,
+    friendlyZoneLabel,
+    isValidTimeZone,
+    parseUtcOffsetInput,
+    resolveTimeZoneInput,
     getZonedParts,
     formatDateLabel,
     formatTimeLabel,

@@ -8,7 +8,7 @@
   if (window.__mtfInjected) return;
   window.__mtfInjected = true;
 
-  const { TZKit, MeetingEngine, MeetingStorage } = window;
+  const { TZKit, MeetingEngine, MeetingStorage, ContactParser } = window;
   const detectedTz = TZKit.getUserTimeZone();
 
   const launcher = document.createElement('button');
@@ -28,17 +28,33 @@
     <div class="mtf-panel-body">
       <div class="mtf-field">
         <label>Your time zone</label>
-        <input type="text" id="mtf-your-tz" list="mtf-tz-list" />
+        <input type="text" id="mtf-your-tz" list="mtf-tz-list" placeholder="City, zone, or GMT+3 / -7" />
+        <div class="mtf-hint" id="mtf-your-hint"></div>
       </div>
       <div class="mtf-field">
-        <label>Prospect name</label>
-        <input type="text" id="mtf-name" placeholder="e.g. Alex from Acme Co." />
+        <label>Prospect email</label>
+        <input type="email" id="mtf-email" placeholder="e.g. alex@acme.com" />
+        <div class="mtf-hint" id="mtf-email-hint"></div>
+      </div>
+      <div class="mtf-field-row">
+        <div class="mtf-field mtf-half">
+          <label>Name</label>
+          <input type="text" id="mtf-name" placeholder="Alex" />
+        </div>
+        <div class="mtf-field mtf-half">
+          <label>Company</label>
+          <input type="text" id="mtf-company" placeholder="Acme Co." />
+        </div>
       </div>
       <div class="mtf-field">
         <label>Prospect's time zone</label>
-        <input type="text" id="mtf-tz" list="mtf-tz-list" placeholder="Start typing a city or zone…" />
+        <input type="text" id="mtf-tz" list="mtf-tz-list" placeholder="City, zone, or GMT+3 / -7" />
         <datalist id="mtf-tz-list"></datalist>
         <div class="mtf-hint" id="mtf-hint"></div>
+      </div>
+      <div class="mtf-field">
+        <label>Event title</label>
+        <input type="text" id="mtf-event-title" placeholder="Auto-filled once you add a name or company" />
       </div>
       <div class="mtf-field">
         <label>Duration</label>
@@ -53,26 +69,46 @@
       <div id="mtf-fallback-notice" class="mtf-fallback-notice" hidden>
         ⚠ No time falls in both normal working hours in the next 7 days — showing the closest options instead.
       </div>
+      <div id="mtf-stale-notice" class="mtf-stale-notice" hidden>
+        Inputs changed since this search — click "Find best meeting times" to refresh.
+      </div>
       <div id="mtf-results" class="mtf-results"></div>
     </div>
   `;
   document.body.appendChild(panel);
 
+  // Some single-page apps (Gmail and Calendar both qualify) occasionally
+  // tear down and rebuild large parts of <body> on navigation, which would
+  // silently take our launcher/panel with it since document.body.appendChild
+  // only runs once. Watching body's direct children and re-appending if
+  // either goes missing keeps the widget alive across those rebuilds.
+  function ensureMounted() {
+    if (!document.body.contains(launcher)) document.body.appendChild(launcher);
+    if (!document.body.contains(panel)) document.body.appendChild(panel);
+  }
+  new MutationObserver(ensureMounted).observe(document.body, { childList: true });
+
   const tzListEl = panel.querySelector('#mtf-tz-list');
   TZKit.getAllTimeZones().forEach((zone) => {
     const opt = document.createElement('option');
     opt.value = zone;
-    opt.label = `${TZKit.friendlyZoneName(zone)} (${TZKit.formatOffsetLabel(zone)})`;
+    opt.label = TZKit.friendlyZoneLabel(zone);
     tzListEl.appendChild(opt);
   });
 
   const yourTzInput = panel.querySelector('#mtf-your-tz');
+  const yourTzHint = panel.querySelector('#mtf-your-hint');
+  const emailInput = panel.querySelector('#mtf-email');
+  const emailHint = panel.querySelector('#mtf-email-hint');
   const nameInput = panel.querySelector('#mtf-name');
+  const companyInput = panel.querySelector('#mtf-company');
   const tzInput = panel.querySelector('#mtf-tz');
   const hintEl = panel.querySelector('#mtf-hint');
+  const eventTitleInput = panel.querySelector('#mtf-event-title');
   const durationSelect = panel.querySelector('#mtf-duration');
   const findBtn = panel.querySelector('#mtf-find');
   const fallbackNoticeEl = panel.querySelector('#mtf-fallback-notice');
+  const staleNoticeEl = panel.querySelector('#mtf-stale-notice');
   const resultsEl = panel.querySelector('#mtf-results');
 
   MeetingStorage.getPreferences().then((prefs) => {
@@ -80,13 +116,45 @@
     yourTzInput.value = prefs.userTimeZone || detectedTz;
   });
 
-  tzInput.addEventListener('input', () => {
-    const value = tzInput.value.trim();
-    if (!value) { hintEl.textContent = ''; return; }
-    const zones = TZKit.getAllTimeZones();
-    hintEl.textContent = zones.includes(value)
-      ? `Current time there: ${TZKit.formatTimeLabel(new Date(), value)}`
-      : 'Pick a zone from the suggestions to continue.';
+  function tzLiveHint(input, hintEl) {
+    const value = input.value.trim();
+    if (!value) { hintEl.textContent = ''; hintEl.classList.remove('mtf-error'); return; }
+    const resolved = TZKit.resolveTimeZoneInput(value);
+    hintEl.classList.toggle('mtf-error', !resolved);
+    hintEl.textContent = resolved
+      ? `${TZKit.friendlyZoneLabel(resolved)} — current time: ${TZKit.formatTimeLabel(new Date(), resolved)}`
+      : 'Not recognized — try a city name or an offset like GMT+3.';
+  }
+  tzInput.addEventListener('input', () => tzLiveHint(tzInput, hintEl));
+  yourTzInput.addEventListener('input', () => tzLiveHint(yourTzInput, yourTzHint));
+
+  function computeDefaultEventTitle() {
+    const company = companyInput.value.trim();
+    const name = nameInput.value.trim();
+    if (company) return `${company} <> Demo`;
+    if (name) return `Call with ${name}`;
+    return '';
+  }
+  function refreshEventTitleIfNotEdited() {
+    if (eventTitleInput.dataset.userEdited === 'true') return;
+    eventTitleInput.value = computeDefaultEventTitle();
+  }
+  eventTitleInput.addEventListener('input', () => {
+    eventTitleInput.dataset.userEdited = 'true';
+  });
+
+  emailInput.addEventListener('input', () => {
+    const guess = ContactParser.guessFromEmail(emailInput.value.trim());
+    if (!guess) { emailHint.textContent = ''; return; }
+    if (!nameInput.value.trim() && guess.name) nameInput.value = guess.name;
+    if (!companyInput.value.trim() && guess.company) companyInput.value = guess.company;
+    refreshEventTitleIfNotEdited();
+    emailHint.textContent = guess.isPersonalDomain
+      ? 'Personal email address — add their company by hand.'
+      : 'Guessed name & company from the email — feel free to correct.';
+  });
+  [nameInput, companyInput].forEach((input) => {
+    input.addEventListener('input', refreshEventTitleIfNotEdited);
   });
 
   launcher.addEventListener('click', () => {
@@ -96,10 +164,24 @@
     panel.classList.add('mtf-hidden');
   });
 
-  function renderSlots(result, userTz, prospectName, prospectTz) {
+  function markStale() {
+    if (resultsEl.dataset.hasResults !== 'true') return;
+    resultsEl.classList.add('mtf-stale');
+    staleNoticeEl.hidden = false;
+  }
+  function clearStale() {
+    resultsEl.classList.remove('mtf-stale');
+    staleNoticeEl.hidden = true;
+  }
+  [yourTzInput, emailInput, nameInput, companyInput, tzInput, durationSelect].forEach((el) => {
+    el.addEventListener('input', markStale);
+  });
+
+  function renderSlots(result, userTz, prospectName, prospectTz, eventTitle) {
     const { slots, usedFallback } = result;
     fallbackNoticeEl.hidden = !usedFallback || !slots.length;
     resultsEl.innerHTML = '';
+    resultsEl.dataset.hasResults = slots.length ? 'true' : 'false';
     if (!slots.length) {
       resultsEl.innerHTML = '<div class="mtf-empty">No workable time found in the next 7 days.</div>';
       return;
@@ -128,13 +210,13 @@
         </div>
       `;
       card.querySelector('[data-action="add"]').addEventListener('click', () => {
-        const title = prospectName ? `Call with ${prospectName}` : 'Meeting';
+        const title = eventTitle || (prospectName ? `Call with ${prospectName}` : 'Meeting');
         const url = TZKit.buildGoogleCalendarUrl({
           title,
           start: slot.start,
           end: slot.end,
           timeZone: userTz,
-          details: `Suggested by Meeting Time Finder — ${prospectName || 'prospect'} is in ${TZKit.friendlyZoneName(prospectTz)}.`
+          details: `Suggested by Meeting Time Finder — ${prospectName || 'prospect'} is in ${TZKit.friendlyZoneLabel(prospectTz)}.`
         });
         window.open(url, '_blank', 'noopener');
       });
@@ -152,18 +234,41 @@
     });
   }
 
-  findBtn.addEventListener('click', async () => {
-    const zones = TZKit.getAllTimeZones();
+  function displayName(fields) {
+    return fields.prospectName || fields.prospectCompany || fields.prospectEmail || '';
+  }
 
-    const userTz = yourTzInput.value.trim();
-    if (!userTz || !zones.includes(userTz)) {
+  async function loadLastSearch() {
+    const last = await MeetingStorage.getLastSearch();
+    if (!last) return;
+
+    emailInput.value = last.prospectEmail || '';
+    nameInput.value = last.prospectName || '';
+    companyInput.value = last.prospectCompany || '';
+    tzInput.value = last.prospectTz || '';
+    eventTitleInput.value = last.eventTitle || '';
+    eventTitleInput.dataset.userEdited = last.eventTitle ? 'true' : 'false';
+
+    const slots = MeetingStorage.deserializeSlots(last.slotsSerialized).filter((s) => s.end > new Date());
+    if (!slots.length) return;
+
+    renderSlots({ slots, usedFallback: last.usedFallback }, last.userTz, displayName(last), last.prospectTz, last.eventTitle);
+  }
+  loadLastSearch();
+
+  findBtn.addEventListener('click', async () => {
+    const userTz = TZKit.resolveTimeZoneInput(yourTzInput.value.trim());
+    if (!userTz) {
+      yourTzHint.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
+      yourTzHint.classList.add('mtf-error');
       yourTzInput.focus();
       return;
     }
 
-    const prospectTz = tzInput.value.trim();
-    if (!prospectTz || !zones.includes(prospectTz)) {
-      hintEl.textContent = 'Please pick a valid time zone from the suggestions.';
+    const prospectTz = TZKit.resolveTimeZoneInput(tzInput.value.trim());
+    if (!prospectTz) {
+      hintEl.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
+      hintEl.classList.add('mtf-error');
       tzInput.focus();
       return;
     }
@@ -176,9 +281,19 @@
       userTimeZone: userTz === detectedTz ? null : userTz
     });
 
+    const prospectEmail = emailInput.value.trim();
     const prospectName = nameInput.value.trim();
-    if (prospectName) {
-      await MeetingStorage.saveProspect({ name: prospectName, timeZone: prospectTz });
+    const prospectCompany = companyInput.value.trim();
+    const prospectDisplayName = prospectName || prospectCompany || prospectEmail;
+    const eventTitle = eventTitleInput.value.trim() || computeDefaultEventTitle() || 'Meeting';
+
+    if (prospectDisplayName) {
+      await MeetingStorage.saveProspect({
+        name: prospectDisplayName,
+        company: prospectCompany,
+        email: prospectEmail,
+        timeZone: prospectTz
+      });
     }
 
     const prefs = await MeetingStorage.getPreferences();
@@ -191,7 +306,19 @@
       daysAhead: 7,
       maxResults: 6
     });
-    renderSlots(result, userTz, prospectName, prospectTz);
+    renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle);
+    clearStale();
+
+    await MeetingStorage.saveLastSearch({
+      userTz,
+      prospectEmail,
+      prospectName,
+      prospectCompany,
+      prospectTz,
+      eventTitle,
+      usedFallback: result.usedFallback,
+      slotsSerialized: MeetingStorage.serializeSlots(result.slots)
+    });
 
     findBtn.disabled = false;
     findBtn.textContent = 'Find best meeting times';

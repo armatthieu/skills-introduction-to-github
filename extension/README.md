@@ -42,6 +42,23 @@ hour off because of a time-zone mixup.
   ↔ India under default 9–6 hours — it's a real scheduling problem, not a
   bug), the finder falls back to the closest options instead of showing
   nothing, clearly flagging which side(s) it's outside normal hours for.
+- **Paste an email, skip the typing**: enter a prospect's email address and
+  their name + company are guessed from it (`jane.doe@acme.com` → "Jane
+  Doe" at "Acme") into editable fields — pure pattern-matching on the
+  address, no AI/network call involved, so a bad guess is a one-word edit
+  away, not a redo. Personal email domains (Gmail, Yahoo, etc.) are
+  detected and skipped for the company guess.
+- **Editable event title**: auto-composed as `Company <> Demo` (or `Call
+  with Name` if there's no company), used for the "Add to Calendar" event —
+  edit it before adding if the wording isn't quite right.
+- **Type a time zone the easy way**: besides city names ("Tokyo",
+  "New_York"), both time-zone fields accept a plain UTC offset like
+  `GMT+3`, `UTC-7`, or just `-7`.
+- **Results survive an accidental close**: the last search (inputs +
+  suggested times) is remembered and restored the next time the popup or
+  in-page widget opens, so closing it by mistake doesn't lose the answer.
+  It's shown dimmed with a "click Find to refresh" nudge the moment any
+  input is edited, rather than being wiped outright.
 
 ## What it deliberately does *not* do yet
 
@@ -78,7 +95,8 @@ extension/
   lib/
     timezones.js         IANA time zone list + formatting helpers (TZKit)
     engine.js            Slot-finding + scoring logic (MeetingEngine)
-    storage.js           chrome.storage wrapper for prospects/preferences
+    storage.js           chrome.storage wrapper for prospects/prefs/last search
+    contact-parser.js    Guesses name + company from an email (ContactParser)
   icons/                 Toolbar/extension icons
 ```
 

@@ -14,7 +14,7 @@
   font-size: 22px;
   cursor: pointer;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
-  z-index: 2147483000;
+  z-index: 2147483647;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -31,7 +31,7 @@
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-  z-index: 2147483000;
+  z-index: 2147483647;
   font-family: 'Google Sans', Roboto, Arial, sans-serif;
   color: #202124;
   font-size: 13px;
@@ -79,6 +79,21 @@
 }
 
 .mtf-hint { font-size: 10px; color: #5f6368; margin-top: 3px; min-height: 12px; }
+.mtf-hint.mtf-error { color: #c5221f; }
+
+.mtf-field-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.mtf-field-row .mtf-field.mtf-half { margin-bottom: 0; flex: 1; min-width: 0; }
+
+.mtf-stale-notice {
+  font-size: 10px;
+  color: #5f6368;
+  background: #f6f8fc;
+  border: 1px dashed #e0e0e0;
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+}
+.mtf-results.mtf-stale { opacity: 0.55; }
 
 .mtf-find-btn {
   width: 100%;
@@ -171,7 +186,7 @@
   font-size: 12px;
   padding: 6px 10px;
   border-radius: 6px;
-  z-index: 2147483000;
+  z-index: 2147483647;
   pointer-events: none;
   letter-spacing: 0.01em;
 }

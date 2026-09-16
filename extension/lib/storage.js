@@ -13,8 +13,14 @@
     userTimeZone: null // null = auto-detect from the browser
   };
 
+  const LAST_SEARCH_KEY = 'mtf_last_search';
+
   function hasChromeStorage() {
     return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
+  }
+
+  function hasChromeLocalStorage() {
+    return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
   }
 
   function get(keys) {
@@ -31,6 +37,20 @@
     });
   }
 
+  function getLocal(keys) {
+    return new Promise((resolve) => {
+      if (!hasChromeLocalStorage()) return resolve({});
+      chrome.storage.local.get(keys, (result) => resolve(result || {}));
+    });
+  }
+
+  function setLocal(items) {
+    return new Promise((resolve) => {
+      if (!hasChromeLocalStorage()) return resolve();
+      chrome.storage.local.set(items, () => resolve());
+    });
+  }
+
   async function getProspects() {
     const result = await get([PROSPECTS_KEY]);
     return result[PROSPECTS_KEY] || [];
@@ -38,9 +58,11 @@
 
   async function saveProspect(prospect) {
     const prospects = await getProspects();
-    const existingIdx = prospects.findIndex(
-      (p) => p.name.toLowerCase() === prospect.name.toLowerCase()
-    );
+    const existingIdx = prospects.findIndex((p) => (
+      prospect.email && p.email
+        ? p.email.toLowerCase() === prospect.email.toLowerCase()
+        : p.name.toLowerCase() === prospect.name.toLowerCase()
+    ));
     if (existingIdx >= 0) {
       prospects[existingIdx] = { ...prospects[existingIdx], ...prospect };
     } else {
@@ -79,6 +101,51 @@
     return prefs.userTimeZone || global.TZKit.getUserTimeZone();
   }
 
+  // Remembers the most recent search (inputs + results) so it survives an
+  // accidental close of the popup or the in-page widget — reopening shows
+  // exactly what was last found instead of a blank form. Kept in
+  // chrome.storage.local (not .sync): it's written on every search and
+  // sync has tight write-rate and per-item size limits meant for
+  // low-frequency data like prospects/preferences. Callers own converting
+  // slot.start/slot.end Date objects to/from ISO strings, since chrome.storage
+  // serializes plain JSON and would otherwise silently drop them to strings
+  // without round-tripping back to Date on read.
+  async function getLastSearch() {
+    const result = await getLocal([LAST_SEARCH_KEY]);
+    return result[LAST_SEARCH_KEY] || null;
+  }
+
+  async function saveLastSearch(data) {
+    await setLocal({ [LAST_SEARCH_KEY]: { ...data, savedAt: Date.now() } });
+  }
+
+  async function clearLastSearch() {
+    await setLocal({ [LAST_SEARCH_KEY]: null });
+  }
+
+  // Slots carry Date objects and a few fields only needed transiently
+  // (score, userLocal/otherLocal parts) — these two keep the persisted
+  // shape minimal and round-trip exactly what rendering actually needs.
+  function serializeSlots(slots) {
+    return slots.map((s) => ({
+      startIso: s.start.toISOString(),
+      endIso: s.end.toISOString(),
+      tier: s.tier,
+      userInHours: s.userInHours,
+      otherInHours: s.otherInHours
+    }));
+  }
+
+  function deserializeSlots(serialized) {
+    return (serialized || []).map((s) => ({
+      start: new Date(s.startIso),
+      end: new Date(s.endIso),
+      tier: s.tier,
+      userInHours: s.userInHours,
+      otherInHours: s.otherInHours
+    }));
+  }
+
   global.MeetingStorage = {
     DEFAULT_PREFS,
     getProspects,
@@ -86,6 +153,11 @@
     removeProspect,
     getPreferences,
     savePreferences,
-    getEffectiveUserTimeZone
+    getEffectiveUserTimeZone,
+    getLastSearch,
+    saveLastSearch,
+    clearLastSearch,
+    serializeSlots,
+    deserializeSlots
   };
 })(typeof window !== 'undefined' ? window : globalThis);

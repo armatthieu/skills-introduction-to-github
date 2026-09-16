@@ -1,12 +1,17 @@
 (function () {
-  const { TZKit, MeetingEngine, MeetingStorage } = window;
+  const { TZKit, MeetingEngine, MeetingStorage, ContactParser } = window;
 
   const yourTzInput = document.getElementById('your-tz');
+  const yourTzHint = document.getElementById('your-tz-hint');
   const detectTzBtn = document.getElementById('detect-tz-btn');
+  const prospectEmailInput = document.getElementById('prospect-email');
+  const emailHint = document.getElementById('email-hint');
   const prospectNameInput = document.getElementById('prospect-name');
+  const prospectCompanyInput = document.getElementById('prospect-company');
   const prospectTzInput = document.getElementById('prospect-tz');
   const tzList = document.getElementById('tz-list');
   const tzHint = document.getElementById('tz-hint');
+  const eventTitleInput = document.getElementById('event-title');
   const saveProspectCheckbox = document.getElementById('save-prospect');
   const recentRow = document.getElementById('recent-row');
   const recentChips = document.getElementById('recent-chips');
@@ -19,6 +24,7 @@
   const otherEndSelect = document.getElementById('other-end');
   const findBtn = document.getElementById('find-btn');
   const fallbackNotice = document.getElementById('fallback-notice');
+  const staleNotice = document.getElementById('stale-notice');
   const resultsSection = document.getElementById('results');
   const resultsList = document.getElementById('results-list');
   const emptyState = document.getElementById('empty-state');
@@ -43,26 +49,63 @@
     zones.forEach((zone) => {
       const opt = document.createElement('option');
       opt.value = zone;
-      opt.label = `${TZKit.friendlyZoneName(zone)} (${TZKit.formatOffsetLabel(zone)})`;
+      opt.label = TZKit.friendlyZoneLabel(zone);
       tzList.appendChild(opt);
     });
   }
   populateTzList();
 
-  function updateTzHint() {
-    const value = prospectTzInput.value.trim();
-    if (!value) { tzHint.textContent = ''; return; }
-    const zones = TZKit.getAllTimeZones();
-    if (zones.includes(value)) {
-      tzHint.textContent = `Current time there: ${TZKit.formatTimeLabel(new Date(), value)}`;
-    } else {
-      tzHint.textContent = 'Pick a zone from the suggestions to continue.';
-    }
+  function tzLiveHint(input, hintEl) {
+    const value = input.value.trim();
+    if (!value) { hintEl.textContent = ''; hintEl.classList.remove('error'); return; }
+    const resolved = TZKit.resolveTimeZoneInput(value);
+    hintEl.classList.toggle('error', !resolved);
+    hintEl.textContent = resolved
+      ? `${TZKit.friendlyZoneLabel(resolved)} — current time: ${TZKit.formatTimeLabel(new Date(), resolved)}`
+      : 'Not recognized — try a city name or an offset like GMT+3.';
   }
-  prospectTzInput.addEventListener('input', updateTzHint);
+  prospectTzInput.addEventListener('input', () => tzLiveHint(prospectTzInput, tzHint));
+  yourTzInput.addEventListener('input', () => tzLiveHint(yourTzInput, yourTzHint));
 
   detectTzBtn.addEventListener('click', () => {
     yourTzInput.value = detectedTz;
+    tzLiveHint(yourTzInput, yourTzHint);
+  });
+
+  // Event title: auto-composed from company/name, but stops being
+  // auto-updated the moment the user types into it directly.
+  function computeDefaultEventTitle() {
+    const company = prospectCompanyInput.value.trim();
+    const name = prospectNameInput.value.trim();
+    if (company) return `${company} <> Demo`;
+    if (name) return `Call with ${name}`;
+    return '';
+  }
+  function refreshEventTitleIfNotEdited() {
+    if (eventTitleInput.dataset.userEdited === 'true') return;
+    eventTitleInput.value = computeDefaultEventTitle();
+  }
+  eventTitleInput.addEventListener('input', () => {
+    eventTitleInput.dataset.userEdited = 'true';
+  });
+
+  // Pasting a prospect's email guesses their name + company so there's
+  // less to type by hand. It's plain pattern-matching on the address, not
+  // an AI/network lookup — both guesses land in editable fields.
+  prospectEmailInput.addEventListener('input', () => {
+    const guess = ContactParser.guessFromEmail(prospectEmailInput.value.trim());
+    if (!guess) { emailHint.textContent = ''; return; }
+
+    if (!prospectNameInput.value.trim() && guess.name) prospectNameInput.value = guess.name;
+    if (!prospectCompanyInput.value.trim() && guess.company) prospectCompanyInput.value = guess.company;
+    refreshEventTitleIfNotEdited();
+
+    emailHint.textContent = guess.isPersonalDomain
+      ? 'Personal email address — add their company by hand.'
+      : 'Guessed name & company from the email — feel free to correct.';
+  });
+  [prospectNameInput, prospectCompanyInput].forEach((input) => {
+    input.addEventListener('input', refreshEventTitleIfNotEdited);
   });
 
   async function loadPrefs() {
@@ -86,9 +129,14 @@
       chip.className = 'chip';
       chip.textContent = p.name;
       chip.addEventListener('click', () => {
-        prospectNameInput.value = p.name;
+        prospectEmailInput.value = p.email || '';
+        prospectNameInput.value = p.name || '';
+        prospectCompanyInput.value = p.company || '';
         prospectTzInput.value = p.timeZone;
-        updateTzHint();
+        eventTitleInput.dataset.userEdited = 'false';
+        refreshEventTitleIfNotEdited();
+        tzLiveHint(prospectTzInput, tzHint);
+        markStale();
       });
       recentChips.appendChild(chip);
     });
@@ -99,7 +147,25 @@
     toggleAdvancedBtn.textContent = advancedPanel.hidden ? 'Working hours ▾' : 'Working hours ▴';
   });
 
-  function renderSlots(result, userTz, prospectName, prospectTz) {
+  // Once results are shown, editing any input that would change them marks
+  // the list "stale" (dimmed, with a nudge to re-search) rather than
+  // clearing it outright — so an accidental popup close never loses the
+  // last answer, but a genuinely new search doesn't look current either.
+  function markStale() {
+    if (resultsSection.hidden) return;
+    resultsSection.classList.add('stale');
+    staleNotice.hidden = false;
+  }
+  function clearStale() {
+    resultsSection.classList.remove('stale');
+    staleNotice.hidden = true;
+  }
+  [
+    yourTzInput, prospectEmailInput, prospectNameInput, prospectCompanyInput, prospectTzInput,
+    durationSelect, userStartSelect, userEndSelect, otherStartSelect, otherEndSelect
+  ].forEach((el) => el.addEventListener('input', markStale));
+
+  function renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle) {
     const { slots, usedFallback } = result;
     fallbackNotice.hidden = !usedFallback || !slots.length;
     resultsList.innerHTML = '';
@@ -131,12 +197,12 @@
       times.className = 'slot-times';
       times.innerHTML = `
         <div class="slot-time-row">You: <strong>${TZKit.formatTimeLabel(slot.start, userTz)}</strong></div>
-        <div class="slot-time-row">${prospectName || 'Prospect'}: <strong>${TZKit.formatTimeLabel(slot.start, prospectTz)}</strong></div>
+        <div class="slot-time-row">${prospectDisplayName || 'Prospect'}: <strong>${TZKit.formatTimeLabel(slot.start, prospectTz)}</strong></div>
       `;
       if (usedFallback) {
         const warnBits = [];
         if (!slot.userInHours) warnBits.push('outside your hours');
-        if (!slot.otherInHours) warnBits.push(`outside ${prospectName || "the prospect's"} hours`);
+        if (!slot.otherInHours) warnBits.push(`outside ${prospectDisplayName || "the prospect's"} hours`);
         if (warnBits.length) {
           const warn = document.createElement('div');
           warn.className = 'slot-warning';
@@ -152,13 +218,13 @@
       addBtn.className = 'primary';
       addBtn.textContent = 'Add to Calendar';
       addBtn.addEventListener('click', () => {
-        const title = prospectName ? `Call with ${prospectName}` : 'Meeting';
+        const title = eventTitle || (prospectDisplayName ? `Call with ${prospectDisplayName}` : 'Meeting');
         const url = TZKit.buildGoogleCalendarUrl({
           title,
           start: slot.start,
           end: slot.end,
           timeZone: userTz,
-          details: `Suggested by Meeting Time Finder — ${prospectName || 'prospect'} is in ${TZKit.friendlyZoneName(prospectTz)}.`
+          details: `Suggested by Meeting Time Finder — ${prospectDisplayName || 'prospect'} is in ${TZKit.friendlyZoneLabel(prospectTz)}.`
         });
         chrome.tabs.create({ url });
       });
@@ -166,7 +232,7 @@
       const copyBtn = document.createElement('button');
       copyBtn.textContent = 'Copy';
       copyBtn.addEventListener('click', async () => {
-        const text = `${TZKit.formatDateLabel(slot.start, userTz)} — ${TZKit.formatTimeLabel(slot.start, userTz)} your time / ${TZKit.formatTimeLabel(slot.start, prospectTz)} ${prospectName || 'their'} time`;
+        const text = `${TZKit.formatDateLabel(slot.start, userTz)} — ${TZKit.formatTimeLabel(slot.start, userTz)} your time / ${TZKit.formatTimeLabel(slot.start, prospectTz)} ${prospectDisplayName || 'their'} time`;
         try {
           await navigator.clipboard.writeText(text);
           copyBtn.textContent = 'Copied!';
@@ -186,18 +252,40 @@
     });
   }
 
-  async function handleFind() {
-    const zones = TZKit.getAllTimeZones();
+  async function loadLastSearch() {
+    const last = await MeetingStorage.getLastSearch();
+    if (!last) return;
 
-    const userTz = yourTzInput.value.trim();
-    if (!userTz || !zones.includes(userTz)) {
+    prospectEmailInput.value = last.prospectEmail || '';
+    prospectNameInput.value = last.prospectName || '';
+    prospectCompanyInput.value = last.prospectCompany || '';
+    prospectTzInput.value = last.prospectTz || '';
+    eventTitleInput.value = last.eventTitle || '';
+    eventTitleInput.dataset.userEdited = last.eventTitle ? 'true' : 'false';
+
+    const slots = MeetingStorage.deserializeSlots(last.slotsSerialized).filter((s) => s.end > new Date());
+    if (!slots.length) return;
+
+    renderSlots({ slots, usedFallback: last.usedFallback }, last.userTz, displayName(last), last.prospectTz, last.eventTitle);
+  }
+
+  function displayName(fields) {
+    return fields.prospectName || fields.prospectCompany || fields.prospectEmail || '';
+  }
+
+  async function handleFind() {
+    const userTz = TZKit.resolveTimeZoneInput(yourTzInput.value.trim());
+    if (!userTz) {
+      yourTzHint.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
+      yourTzHint.classList.add('error');
       yourTzInput.focus();
       return;
     }
 
-    const prospectTz = prospectTzInput.value.trim();
-    if (!prospectTz || !zones.includes(prospectTz)) {
-      tzHint.textContent = 'Please pick a valid time zone from the suggestions.';
+    const prospectTz = TZKit.resolveTimeZoneInput(prospectTzInput.value.trim());
+    if (!prospectTz) {
+      tzHint.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
+      tzHint.classList.add('error');
       prospectTzInput.focus();
       return;
     }
@@ -213,9 +301,19 @@
     };
     await MeetingStorage.savePreferences(prefs);
 
+    const prospectEmail = prospectEmailInput.value.trim();
     const prospectName = prospectNameInput.value.trim();
-    if (saveProspectCheckbox.checked && prospectName) {
-      await MeetingStorage.saveProspect({ name: prospectName, timeZone: prospectTz });
+    const prospectCompany = prospectCompanyInput.value.trim();
+    const prospectDisplayName = prospectName || prospectCompany || prospectEmail;
+    const eventTitle = eventTitleInput.value.trim() || computeDefaultEventTitle() || 'Meeting';
+
+    if (saveProspectCheckbox.checked && prospectDisplayName) {
+      await MeetingStorage.saveProspect({
+        name: prospectDisplayName,
+        company: prospectCompany,
+        email: prospectEmail,
+        timeZone: prospectTz
+      });
       loadRecentProspects();
     }
 
@@ -229,7 +327,19 @@
       maxResults: 8
     });
 
-    renderSlots(result, userTz, prospectName, prospectTz);
+    renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle);
+    clearStale();
+
+    await MeetingStorage.saveLastSearch({
+      userTz,
+      prospectEmail,
+      prospectName,
+      prospectCompany,
+      prospectTz,
+      eventTitle,
+      usedFallback: result.usedFallback,
+      slotsSerialized: MeetingStorage.serializeSlots(result.slots)
+    });
 
     findBtn.disabled = false;
     findBtn.textContent = 'Find best meeting times';
@@ -237,6 +347,6 @@
 
   findBtn.addEventListener('click', handleFind);
 
-  loadPrefs();
+  loadPrefs().then(loadLastSearch);
   loadRecentProspects();
 })();

@@ -17,20 +17,38 @@
   <main>
     <section class="field-group">
       <label for="your-tz">Your time zone</label>
-      <input id="your-tz" type="text" list="tz-list" autocomplete="off" />
+      <input id="your-tz" type="text" list="tz-list" placeholder="City, zone, or GMT+3 / -7" autocomplete="off" />
       <button type="button" id="detect-tz-btn" class="link-btn small">Use detected zone</button>
+      <div class="tz-hint" id="your-tz-hint"></div>
     </section>
 
     <section class="field-group">
-      <label for="prospect-name">Prospect name</label>
-      <input id="prospect-name" type="text" placeholder="e.g. Alex from Acme Co." autocomplete="off" />
+      <label for="prospect-email">Prospect email</label>
+      <input id="prospect-email" type="email" placeholder="e.g. alex@acme.com" autocomplete="off" />
+      <div class="tz-hint" id="email-hint"></div>
+    </section>
+
+    <section class="field-row">
+      <div class="field-group half">
+        <label for="prospect-name">Name</label>
+        <input id="prospect-name" type="text" placeholder="Alex" autocomplete="off" />
+      </div>
+      <div class="field-group half">
+        <label for="prospect-company">Company</label>
+        <input id="prospect-company" type="text" placeholder="Acme Co." autocomplete="off" />
+      </div>
     </section>
 
     <section class="field-group">
-      <label for="prospect-tz">Prospect's time zone or city</label>
-      <input id="prospect-tz" type="text" list="tz-list" placeholder="Start typing a city or zone…" autocomplete="off" />
+      <label for="prospect-tz">Prospect's time zone</label>
+      <input id="prospect-tz" type="text" list="tz-list" placeholder="City, zone, or GMT+3 / -7" autocomplete="off" />
       <datalist id="tz-list"></datalist>
       <div class="tz-hint" id="tz-hint"></div>
+    </section>
+
+    <section class="field-group">
+      <label for="event-title">Event title</label>
+      <input id="event-title" type="text" placeholder="Auto-filled once you add a name or company" autocomplete="off" />
     </section>
 
     <section class="save-row">
@@ -79,6 +97,10 @@
       one side.
     </p>
 
+    <p id="stale-notice" class="stale-notice" hidden>
+      Inputs changed since this search — click "Find best meeting times" to refresh.
+    </p>
+
     <section id="results" class="results" hidden>
       <div class="results-header">
         <span>Best times in the next 7 days</span>
@@ -95,6 +117,7 @@
   <script src="../lib/timezones.js"></script>
   <script src="../lib/engine.js"></script>
   <script src="../lib/storage.js"></script>
+  <script src="../lib/contact-parser.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
