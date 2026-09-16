@@ -1,7 +1,8 @@
 (function () {
   const { TZKit, MeetingEngine, MeetingStorage } = window;
 
-  const userZoneLabel = document.getElementById('your-zone-label');
+  const yourTzInput = document.getElementById('your-tz');
+  const detectTzBtn = document.getElementById('detect-tz-btn');
   const prospectNameInput = document.getElementById('prospect-name');
   const prospectTzInput = document.getElementById('prospect-tz');
   const tzList = document.getElementById('tz-list');
@@ -17,12 +18,12 @@
   const otherStartSelect = document.getElementById('other-start');
   const otherEndSelect = document.getElementById('other-end');
   const findBtn = document.getElementById('find-btn');
+  const fallbackNotice = document.getElementById('fallback-notice');
   const resultsSection = document.getElementById('results');
   const resultsList = document.getElementById('results-list');
   const emptyState = document.getElementById('empty-state');
 
-  const userTz = TZKit.getUserTimeZone();
-  userZoneLabel.textContent = `${TZKit.friendlyZoneName(userTz)} (${TZKit.formatOffsetLabel(userTz)})`;
+  const detectedTz = TZKit.getUserTimeZone();
 
   function populateHourOptions(select) {
     select.innerHTML = '';
@@ -60,8 +61,13 @@
   }
   prospectTzInput.addEventListener('input', updateTzHint);
 
+  detectTzBtn.addEventListener('click', () => {
+    yourTzInput.value = detectedTz;
+  });
+
   async function loadPrefs() {
     const prefs = await MeetingStorage.getPreferences();
+    yourTzInput.value = prefs.userTimeZone || detectedTz;
     durationSelect.value = String(prefs.durationMinutes);
     userStartSelect.value = String(prefs.userHours.start);
     userEndSelect.value = String(prefs.userHours.end);
@@ -93,8 +99,11 @@
     toggleAdvancedBtn.textContent = advancedPanel.hidden ? 'Working hours ▾' : 'Working hours ▴';
   });
 
-  function renderSlots(slots, prospectName, prospectTz) {
+  function renderSlots(result, userTz, prospectName, prospectTz) {
+    const { slots, usedFallback } = result;
+    fallbackNotice.hidden = !usedFallback || !slots.length;
     resultsList.innerHTML = '';
+
     if (!slots.length) {
       resultsSection.hidden = true;
       emptyState.hidden = false;
@@ -114,7 +123,7 @@
       dateEl.textContent = TZKit.formatDateLabel(slot.start, userTz);
       const badge = document.createElement('span');
       badge.className = `badge ${slot.tier}`;
-      badge.textContent = slot.tier;
+      badge.textContent = slot.tier === 'outside-hours' ? 'outside hours' : slot.tier;
       top.appendChild(dateEl);
       top.appendChild(badge);
 
@@ -124,6 +133,17 @@
         <div class="slot-time-row">You: <strong>${TZKit.formatTimeLabel(slot.start, userTz)}</strong></div>
         <div class="slot-time-row">${prospectName || 'Prospect'}: <strong>${TZKit.formatTimeLabel(slot.start, prospectTz)}</strong></div>
       `;
+      if (usedFallback) {
+        const warnBits = [];
+        if (!slot.userInHours) warnBits.push('outside your hours');
+        if (!slot.otherInHours) warnBits.push(`outside ${prospectName || "the prospect's"} hours`);
+        if (warnBits.length) {
+          const warn = document.createElement('div');
+          warn.className = 'slot-warning';
+          warn.textContent = `⚠ ${warnBits.join(' and ')}`;
+          times.appendChild(warn);
+        }
+      }
 
       const actions = document.createElement('div');
       actions.className = 'slot-actions';
@@ -167,8 +187,15 @@
   }
 
   async function handleFind() {
-    const prospectTz = prospectTzInput.value.trim();
     const zones = TZKit.getAllTimeZones();
+
+    const userTz = yourTzInput.value.trim();
+    if (!userTz || !zones.includes(userTz)) {
+      yourTzInput.focus();
+      return;
+    }
+
+    const prospectTz = prospectTzInput.value.trim();
     if (!prospectTz || !zones.includes(prospectTz)) {
       tzHint.textContent = 'Please pick a valid time zone from the suggestions.';
       prospectTzInput.focus();
@@ -179,6 +206,7 @@
     findBtn.textContent = 'Finding times…';
 
     const prefs = {
+      userTimeZone: userTz === detectedTz ? null : userTz,
       durationMinutes: parseInt(durationSelect.value, 10),
       userHours: { start: parseInt(userStartSelect.value, 10), end: parseInt(userEndSelect.value, 10) },
       otherHours: { start: parseInt(otherStartSelect.value, 10), end: parseInt(otherEndSelect.value, 10) }
@@ -191,7 +219,7 @@
       loadRecentProspects();
     }
 
-    const slots = MeetingEngine.findBestSlots({
+    const result = MeetingEngine.findBestSlots({
       userTz,
       otherTz: prospectTz,
       durationMinutes: prefs.durationMinutes,
@@ -201,7 +229,7 @@
       maxResults: 8
     });
 
-    renderSlots(slots, prospectName, prospectTz);
+    renderSlots(result, userTz, prospectName, prospectTz);
 
     findBtn.disabled = false;
     findBtn.textContent = 'Find best meeting times';

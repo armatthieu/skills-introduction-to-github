@@ -9,8 +9,8 @@
   if (window.__mtfMeetBadgeInjected) return;
   window.__mtfMeetBadgeInjected = true;
 
-  const { TZKit } = window;
-  const userTz = TZKit.getUserTimeZone();
+  const { TZKit, MeetingStorage } = window;
+  let userTz = TZKit.getUserTimeZone();
 
   const badge = document.createElement('div');
   badge.id = 'mtf-meet-badge';
@@ -22,6 +22,11 @@
     badge.textContent =
       `🌐 ${TZKit.friendlyZoneName(userTz)} (${TZKit.formatOffsetLabel(userTz, now)}) · ${TZKit.formatTimeLabel(now, userTz)}`;
   }
+
+  MeetingStorage.getEffectiveUserTimeZone().then((tz) => {
+    userTz = tz;
+    render();
+  });
 
   render();
   setInterval(render, 15000);

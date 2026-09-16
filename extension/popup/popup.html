@@ -11,11 +11,16 @@
       <span class="logo">🕒</span>
       <h1>Meeting Time Finder</h1>
     </div>
-    <div class="your-zone">You: <strong id="your-zone-label">—</strong></div>
   </header>
   <div class="surfaces-note">Also active on Gmail and Google Meet — see the 🕒 button there.</div>
 
   <main>
+    <section class="field-group">
+      <label for="your-tz">Your time zone</label>
+      <input id="your-tz" type="text" list="tz-list" autocomplete="off" />
+      <button type="button" id="detect-tz-btn" class="link-btn small">Use detected zone</button>
+    </section>
+
     <section class="field-group">
       <label for="prospect-name">Prospect name</label>
       <input id="prospect-name" type="text" placeholder="e.g. Alex from Acme Co." autocomplete="off" />
@@ -68,6 +73,12 @@
 
     <button type="button" id="find-btn" class="primary-btn">Find best meeting times</button>
 
+    <p id="fallback-notice" class="fallback-notice" hidden>
+      ⚠ No time falls in both normal working hours in the next 7 days —
+      showing the closest options instead. These may be early or late for
+      one side.
+    </p>
+
     <section id="results" class="results" hidden>
       <div class="results-header">
         <span>Best times in the next 7 days</span>
@@ -76,7 +87,8 @@
     </section>
 
     <p id="empty-state" class="empty-state" hidden>
-      No overlapping working hours in the next 7 days. Try widening the working hours above.
+      No workable time found in the next 7 days. Try widening the working
+      hours or working days above.
     </p>
   </main>
 

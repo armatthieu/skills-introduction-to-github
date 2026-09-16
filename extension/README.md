@@ -33,6 +33,15 @@ hour off because of a time-zone mixup.
 - **Smart ranking**: slots are scored by how central they land in each
   side's working day (not just "does it technically overlap"), and labeled
   `recommended` / `good` / `workable`.
+- **Editable "your time zone"**: the browser's detected zone is just the
+  default — you can override it (e.g. if you're traveling, or the browser
+  guesses wrong), and it's remembered for next time. Available in the popup
+  and in the in-page widget.
+- **Never a dead end**: if no slot falls inside both parties' normal
+  working hours anywhere in the next 7 days (common for e.g. US East Coast
+  ↔ India under default 9–6 hours — it's a real scheduling problem, not a
+  bug), the finder falls back to the closest options instead of showing
+  nothing, clearly flagging which side(s) it's outside normal hours for.
 
 ## What it deliberately does *not* do yet
 

@@ -15,8 +15,9 @@
   if (window.__mtfGmailAnnotateInjected) return;
   window.__mtfGmailAnnotateInjected = true;
 
-  const { TZKit } = window;
-  const userTz = TZKit.getUserTimeZone();
+  const { TZKit, MeetingStorage } = window;
+  let userTz = TZKit.getUserTimeZone();
+  MeetingStorage.getEffectiveUserTimeZone().then((tz) => { userTz = tz; });
 
   // Offset from UTC in minutes. The abbreviation already implies DST state,
   // so EST and EDT get distinct fixed offsets rather than being resolved

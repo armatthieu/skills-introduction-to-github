@@ -105,6 +105,23 @@ input[type="text"]:focus, select:focus {
   white-space: nowrap;
 }
 .link-btn:hover { text-decoration: underline; }
+.link-btn.small { font-size: 11px; padding: 4px 0 0; }
+
+.fallback-notice {
+  font-size: 11px;
+  color: #7a5b00;
+  background: #fff6e0;
+  border: 1px solid #f2d98a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0 0 10px;
+}
+
+.slot-warning {
+  font-size: 11px;
+  color: #7a5b00;
+  margin-top: 2px;
+}
 
 .advanced {
   background: var(--bg-soft);
@@ -159,6 +176,7 @@ input[type="text"]:focus, select:focus {
 }
 .slot-card.recommended { border-color: var(--green); background: #f2faf4; }
 .slot-card.good { border-color: #cfe0fb; background: #f7faff; }
+.slot-card.outside-hours { border-color: #f2d98a; background: #fffaf0; }
 
 .slot-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .slot-date { font-size: 12px; font-weight: 600; color: var(--ink); }
@@ -173,6 +191,7 @@ input[type="text"]:focus, select:focus {
 .badge.recommended { background: var(--green); color: #fff; }
 .badge.good { background: var(--blue); color: #fff; }
 .badge.workable { background: #e0e0e0; color: var(--muted); }
+.badge.outside-hours { background: var(--amber); color: #fff; }
 
 .slot-times { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
 .slot-time-row { font-size: 12px; color: var(--muted); display: flex; gap: 6px; }

@@ -119,6 +119,20 @@
 
 .mtf-slot-times { font-size: 11px; color: #5f6368; margin-bottom: 7px; }
 .mtf-slot-times strong { color: #202124; }
+.mtf-slot-warning { color: #7a5b00; margin-top: 3px; }
+
+.mtf-fallback-notice {
+  font-size: 10px;
+  color: #7a5b00;
+  background: #fff6e0;
+  border: 1px solid #f2d98a;
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+}
+
+.mtf-badge.outside-hours { background: #f9ab00; color: #fff; }
+.mtf-slot-card.outside-hours { border-color: #f2d98a; background: #fffaf0; }
 
 .mtf-slot-actions { display: flex; gap: 6px; }
 .mtf-slot-actions button {

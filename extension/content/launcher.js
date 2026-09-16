@@ -9,7 +9,7 @@
   window.__mtfInjected = true;
 
   const { TZKit, MeetingEngine, MeetingStorage } = window;
-  const userTz = TZKit.getUserTimeZone();
+  const detectedTz = TZKit.getUserTimeZone();
 
   const launcher = document.createElement('button');
   launcher.id = 'mtf-launcher';
@@ -26,6 +26,10 @@
       <button type="button" class="mtf-close-btn" id="mtf-close">✕</button>
     </div>
     <div class="mtf-panel-body">
+      <div class="mtf-field">
+        <label>Your time zone</label>
+        <input type="text" id="mtf-your-tz" list="mtf-tz-list" />
+      </div>
       <div class="mtf-field">
         <label>Prospect name</label>
         <input type="text" id="mtf-name" placeholder="e.g. Alex from Acme Co." />
@@ -46,6 +50,9 @@
         </select>
       </div>
       <button type="button" class="mtf-find-btn" id="mtf-find">Find best meeting times</button>
+      <div id="mtf-fallback-notice" class="mtf-fallback-notice" hidden>
+        ⚠ No time falls in both normal working hours in the next 7 days — showing the closest options instead.
+      </div>
       <div id="mtf-results" class="mtf-results"></div>
     </div>
   `;
@@ -59,15 +66,18 @@
     tzListEl.appendChild(opt);
   });
 
+  const yourTzInput = panel.querySelector('#mtf-your-tz');
   const nameInput = panel.querySelector('#mtf-name');
   const tzInput = panel.querySelector('#mtf-tz');
   const hintEl = panel.querySelector('#mtf-hint');
   const durationSelect = panel.querySelector('#mtf-duration');
   const findBtn = panel.querySelector('#mtf-find');
+  const fallbackNoticeEl = panel.querySelector('#mtf-fallback-notice');
   const resultsEl = panel.querySelector('#mtf-results');
 
   MeetingStorage.getPreferences().then((prefs) => {
     durationSelect.value = String(prefs.durationMinutes);
+    yourTzInput.value = prefs.userTimeZone || detectedTz;
   });
 
   tzInput.addEventListener('input', () => {
@@ -86,23 +96,31 @@
     panel.classList.add('mtf-hidden');
   });
 
-  function renderSlots(slots, prospectName, prospectTz) {
+  function renderSlots(result, userTz, prospectName, prospectTz) {
+    const { slots, usedFallback } = result;
+    fallbackNoticeEl.hidden = !usedFallback || !slots.length;
     resultsEl.innerHTML = '';
     if (!slots.length) {
-      resultsEl.innerHTML = '<div class="mtf-empty">No overlapping working hours in the next 7 days.</div>';
+      resultsEl.innerHTML = '<div class="mtf-empty">No workable time found in the next 7 days.</div>';
       return;
     }
     slots.forEach((slot) => {
       const card = document.createElement('div');
       card.className = `mtf-slot-card ${slot.tier}`;
+      const warnBits = [];
+      if (usedFallback) {
+        if (!slot.userInHours) warnBits.push('outside your hours');
+        if (!slot.otherInHours) warnBits.push(`outside ${prospectName || "their"} hours`);
+      }
       card.innerHTML = `
         <div class="mtf-slot-top">
           <span class="mtf-slot-date">${TZKit.formatDateLabel(slot.start, userTz)}</span>
-          <span class="mtf-badge ${slot.tier}">${slot.tier}</span>
+          <span class="mtf-badge ${slot.tier}">${slot.tier === 'outside-hours' ? 'outside hours' : slot.tier}</span>
         </div>
         <div class="mtf-slot-times">
           You: <strong>${TZKit.formatTimeLabel(slot.start, userTz)}</strong><br/>
           ${prospectName || 'Prospect'}: <strong>${TZKit.formatTimeLabel(slot.start, prospectTz)}</strong>
+          ${warnBits.length ? `<div class="mtf-slot-warning">⚠ ${warnBits.join(' and ')}</div>` : ''}
         </div>
         <div class="mtf-slot-actions">
           <button type="button" class="mtf-primary" data-action="add">Add to Calendar</button>
@@ -135,8 +153,15 @@
   }
 
   findBtn.addEventListener('click', async () => {
-    const prospectTz = tzInput.value.trim();
     const zones = TZKit.getAllTimeZones();
+
+    const userTz = yourTzInput.value.trim();
+    if (!userTz || !zones.includes(userTz)) {
+      yourTzInput.focus();
+      return;
+    }
+
+    const prospectTz = tzInput.value.trim();
     if (!prospectTz || !zones.includes(prospectTz)) {
       hintEl.textContent = 'Please pick a valid time zone from the suggestions.';
       tzInput.focus();
@@ -146,7 +171,10 @@
     findBtn.textContent = 'Finding times…';
 
     const durationMinutes = parseInt(durationSelect.value, 10);
-    await MeetingStorage.savePreferences({ durationMinutes });
+    await MeetingStorage.savePreferences({
+      durationMinutes,
+      userTimeZone: userTz === detectedTz ? null : userTz
+    });
 
     const prospectName = nameInput.value.trim();
     if (prospectName) {
@@ -154,7 +182,7 @@
     }
 
     const prefs = await MeetingStorage.getPreferences();
-    const slots = MeetingEngine.findBestSlots({
+    const result = MeetingEngine.findBestSlots({
       userTz,
       otherTz: prospectTz,
       durationMinutes,
@@ -163,7 +191,7 @@
       daysAhead: 7,
       maxResults: 6
     });
-    renderSlots(slots, prospectName, prospectTz);
+    renderSlots(result, userTz, prospectName, prospectTz);
 
     findBtn.disabled = false;
     findBtn.textContent = 'Find best meeting times';

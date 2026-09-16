@@ -9,7 +9,8 @@
   const DEFAULT_PREFS = {
     durationMinutes: 30,
     userHours: { start: 9, end: 18 },
-    otherHours: { start: 9, end: 18 }
+    otherHours: { start: 9, end: 18 },
+    userTimeZone: null // null = auto-detect from the browser
   };
 
   function hasChromeStorage() {
@@ -69,12 +70,22 @@
     return merged;
   }
 
+  // Resolves the zone to actually use: an explicit user override if one is
+  // saved, otherwise whatever the browser detects. Centralized here so the
+  // popup, the injected widget, the Gmail annotator, and the Meet badge all
+  // agree on the same value.
+  async function getEffectiveUserTimeZone() {
+    const prefs = await getPreferences();
+    return prefs.userTimeZone || global.TZKit.getUserTimeZone();
+  }
+
   global.MeetingStorage = {
     DEFAULT_PREFS,
     getProspects,
     saveProspect,
     removeProspect,
     getPreferences,
-    savePreferences
+    savePreferences,
+    getEffectiveUserTimeZone
   };
 })(typeof window !== 'undefined' ? window : globalThis);
