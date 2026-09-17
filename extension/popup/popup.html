@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Meeting Time Finder</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-title">
+      <span class="logo">🕒</span>
+      <h1>Meeting Time Finder</h1>
+    </div>
+  </header>
+  <div class="surfaces-note">Also active on Gmail and Google Meet — see the 🕒 button there.</div>
+  <div class="plan-note" id="plan-note"></div>
+
+  <main>
+    <section class="field-group">
+      <label for="your-tz-select">Your time zone</label>
+      <select id="your-tz-select"></select>
+      <input id="your-tz-other" type="text" list="tz-list" placeholder="City, zone, or GMT+3 / -7" autocomplete="off" hidden />
+      <button type="button" id="detect-tz-btn" class="link-btn small">Use detected zone</button>
+      <div class="tz-hint" id="your-tz-hint"></div>
+    </section>
+
+    <section class="field-group">
+      <label for="prospect-email">Prospect email</label>
+      <input id="prospect-email" type="email" placeholder="e.g. alex@acme.com" autocomplete="off" />
+      <div class="tz-hint" id="email-hint"></div>
+    </section>
+
+    <section class="field-row">
+      <div class="field-group half">
+        <label for="prospect-name">Name</label>
+        <input id="prospect-name" type="text" placeholder="Alex" autocomplete="off" />
+      </div>
+      <div class="field-group half">
+        <label for="prospect-company">Company</label>
+        <input id="prospect-company" type="text" placeholder="Acme Co." autocomplete="off" />
+      </div>
+    </section>
+
+    <section class="field-group">
+      <label for="prospect-tz-select">Prospect's time zone</label>
+      <select id="prospect-tz-select"></select>
+      <input id="prospect-tz-other" type="text" list="tz-list" placeholder="City, zone, or GMT+3 / -7" autocomplete="off" hidden />
+      <datalist id="tz-list"></datalist>
+      <div class="tz-hint" id="tz-hint"></div>
+    </section>
+
+    <section class="field-group">
+      <label for="event-title">Event title</label>
+      <input id="event-title" type="text" placeholder="Auto-filled once you add a name or company" autocomplete="off" />
+    </section>
+
+    <section class="save-row">
+      <input type="checkbox" id="save-prospect" checked />
+      <label for="save-prospect">Remember this prospect</label>
+    </section>
+
+    <section class="recent-row" id="recent-row" hidden>
+      <span class="recent-label">Recent:</span>
+      <div class="chips" id="recent-chips"></div>
+    </section>
+
+    <section class="options-row">
+      <div class="field-group compact">
+        <label for="duration">Duration</label>
+        <select id="duration"></select>
+      </div>
+      <button type="button" id="toggle-advanced" class="link-btn">Working hours ▾</button>
+    </section>
+
+    <section class="advanced" id="advanced-panel" hidden>
+      <div class="hours-row">
+        <span class="hours-label">You</span>
+        <select id="user-start"></select>
+        <span>to</span>
+        <select id="user-end"></select>
+      </div>
+      <div class="hours-row">
+        <span class="hours-label">Prospect</span>
+        <select id="other-start"></select>
+        <span>to</span>
+        <select id="other-end"></select>
+      </div>
+    </section>
+
+    <button type="button" id="find-btn" class="primary-btn">Find best meeting times</button>
+
+    <p id="limit-notice" class="limit-notice" hidden></p>
+
+    <p id="fallback-notice" class="fallback-notice" hidden>
+      ⚠ No time falls in both normal working hours in the next 7 days —
+      showing the closest options instead. These may be early or late for
+      one side.
+    </p>
+
+    <p id="stale-notice" class="stale-notice" hidden>
+      Inputs changed since this search — click "Find best meeting times" to refresh.
+    </p>
+
+    <section id="results" class="results" hidden>
+      <div class="results-header">
+        <span id="results-header-label">Best times</span>
+      </div>
+      <div id="results-list" class="results-list"></div>
+    </section>
+
+    <p id="empty-state" class="empty-state" hidden>
+      No workable time found in the next 7 days. Try widening the working
+      hours or working days above.
+    </p>
+  </main>
+
+  <script src="../lib/timezones.js"></script>
+  <script src="../lib/engine.js"></script>
+  <script src="../lib/storage.js"></script>
+  <script src="../lib/contact-parser.js"></script>
+  <script src="../lib/plans.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

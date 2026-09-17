@@ -1,0 +1,209 @@
+/* Namespaced with "mtf-" (Meeting Time Finder) to avoid clashing with
+   Google Calendar's own styles. */
+
+#mtf-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#mtf-launcher:hover { background: #1765cc; }
+
+#mtf-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 88px;
+  width: 340px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  z-index: 2147483647;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  color: #202124;
+  font-size: 13px;
+}
+
+#mtf-panel.mtf-hidden { display: none; }
+
+.mtf-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #1a73e8;
+  color: #fff;
+  border-radius: 10px 10px 0 0;
+}
+.mtf-panel-header strong { font-size: 13px; }
+.mtf-close-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.mtf-panel-body { padding: 12px 14px; }
+
+.mtf-field { margin-bottom: 10px; }
+.mtf-field label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #5f6368;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.mtf-field input, .mtf-field select {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.mtf-hint { font-size: 10px; color: #5f6368; margin-top: 3px; min-height: 12px; }
+.mtf-hint.mtf-error { color: #c5221f; }
+
+.mtf-field-row { display: flex; gap: 8px; margin-bottom: 10px; }
+
+#mtf-your-tz-other, #mtf-tz-other { margin-top: 6px; }
+.mtf-field-row .mtf-field.mtf-half { margin-bottom: 0; flex: 1; min-width: 0; }
+
+.mtf-plan-note { font-size: 10px; color: #5f6368; margin-bottom: 6px; }
+.mtf-plan-note strong { color: #202124; }
+
+.mtf-limit-notice {
+  font-size: 10px;
+  color: #c5221f;
+  background: #fce8e6;
+  border: 1px solid #f6aea9;
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+}
+
+.mtf-stale-notice {
+  font-size: 10px;
+  color: #5f6368;
+  background: #f6f8fc;
+  border: 1px dashed #e0e0e0;
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+}
+.mtf-results.mtf-stale { opacity: 0.55; }
+
+.mtf-find-btn {
+  width: 100%;
+  padding: 9px;
+  border: none;
+  border-radius: 6px;
+  background: #1a73e8;
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.mtf-find-btn:disabled { background: #a9c7f2; }
+
+.mtf-results { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+.mtf-slot-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+.mtf-slot-card.recommended { border-color: #34a853; background: #f2faf4; }
+.mtf-slot-card.good { border-color: #cfe0fb; background: #f7faff; }
+
+.mtf-slot-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.mtf-slot-date { font-weight: 600; font-size: 11px; }
+.mtf-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+.mtf-badge.recommended { background: #34a853; color: #fff; }
+.mtf-badge.good { background: #1a73e8; color: #fff; }
+.mtf-badge.workable { background: #e0e0e0; color: #5f6368; }
+
+.mtf-slot-times { font-size: 11px; color: #5f6368; margin-bottom: 7px; }
+.mtf-slot-times strong { color: #202124; }
+.mtf-slot-warning { color: #7a5b00; margin-top: 3px; }
+
+.mtf-fallback-notice {
+  font-size: 10px;
+  color: #7a5b00;
+  background: #fff6e0;
+  border: 1px solid #f2d98a;
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+}
+
+.mtf-badge.outside-hours { background: #f9ab00; color: #fff; }
+.mtf-slot-card.outside-hours { border-color: #f2d98a; background: #fffaf0; }
+
+.mtf-slot-actions { display: flex; gap: 6px; }
+.mtf-slot-actions button {
+  flex: 1;
+  font-size: 10px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  color: #202124;
+  cursor: pointer;
+  font-family: inherit;
+}
+.mtf-slot-actions button.mtf-primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+
+.mtf-empty { font-size: 11px; color: #5f6368; text-align: center; padding: 10px; }
+
+/* Gmail inline time-zone conversion badge */
+.mtf-time-convert {
+  display: inline-block;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #1a73e8;
+  background: #eaf1fd;
+  border-radius: 4px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* Google Meet persistent time-zone confirmation badge */
+#mtf-meet-badge {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  background: rgba(32, 33, 36, 0.75);
+  color: #fff;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  z-index: 2147483647;
+  pointer-events: none;
+  letter-spacing: 0.01em;
+}

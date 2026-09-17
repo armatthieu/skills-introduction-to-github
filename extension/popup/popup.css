@@ -1,0 +1,267 @@
+:root {
+  color-scheme: light;
+  --blue: #1a73e8;
+  --green: #34a853;
+  --amber: #f9ab00;
+  --ink: #202124;
+  --muted: #5f6368;
+  --border: #e0e0e0;
+  --bg-soft: #f6f8fc;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  width: 360px;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  color: var(--ink);
+  background: #fff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--blue);
+  color: #fff;
+}
+
+.header-title { display: flex; align-items: center; gap: 8px; }
+.header-title h1 { font-size: 15px; margin: 0; font-weight: 600; }
+.logo { font-size: 18px; }
+.your-zone { font-size: 11px; opacity: 0.9; text-align: right; }
+
+.surfaces-note {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--bg-soft);
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.plan-note {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 6px 16px 0;
+}
+.plan-note strong { color: var(--ink); }
+
+main { padding: 14px 16px 16px; }
+
+.field-group { margin-bottom: 12px; }
+.field-group.compact { margin-bottom: 0; flex: 1; }
+.field-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.field-row { display: flex; gap: 10px; margin-bottom: 12px; }
+
+#your-tz-other, #prospect-tz-other { margin-top: 6px; }
+.field-row .field-group.half { margin-bottom: 0; flex: 1; min-width: 0; }
+
+input[type="text"], input[type="email"], select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+}
+
+input[type="text"]:focus, input[type="email"]:focus, select:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+
+.tz-hint { font-size: 11px; color: var(--muted); margin-top: 3px; min-height: 14px; }
+.tz-hint.error { color: #c5221f; }
+
+.recent-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.recent-label { font-size: 11px; color: var(--muted); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  font-size: 11px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.chip:hover { background: #eaf1fd; border-color: var(--blue); }
+
+.options-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 8px 0;
+  white-space: nowrap;
+}
+.link-btn:hover { text-decoration: underline; }
+.link-btn.small { font-size: 11px; padding: 4px 0 0; }
+
+.fallback-notice {
+  font-size: 11px;
+  color: #7a5b00;
+  background: #fff6e0;
+  border: 1px solid #f2d98a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0 0 10px;
+}
+
+.limit-notice {
+  font-size: 11px;
+  color: #c5221f;
+  background: #fce8e6;
+  border: 1px solid #f6aea9;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0 0 10px;
+}
+
+.stale-notice {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0 0 10px;
+}
+
+.results.stale { opacity: 0.55; }
+
+.slot-warning {
+  font-size: 11px;
+  color: #7a5b00;
+  margin-top: 2px;
+}
+
+.advanced {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.hours-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.hours-row:last-child { margin-bottom: 0; }
+.hours-label { width: 56px; color: var(--muted); font-weight: 600; }
+.hours-row select { width: auto; flex: 1; padding: 6px 8px; }
+
+.primary-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+.primary-btn:hover { background: #1765cc; }
+.primary-btn:disabled { background: #a9c7f2; cursor: default; }
+
+.results { margin-top: 14px; }
+.results-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+
+.results-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+
+.slot-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  position: relative;
+}
+.slot-card.recommended { border-color: var(--green); background: #f2faf4; }
+.slot-card.good { border-color: #cfe0fb; background: #f7faff; }
+.slot-card.outside-hours { border-color: #f2d98a; background: #fffaf0; }
+
+.slot-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.slot-date { font-size: 12px; font-weight: 600; color: var(--ink); }
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.badge.recommended { background: var(--green); color: #fff; }
+.badge.good { background: var(--blue); color: #fff; }
+.badge.workable { background: #e0e0e0; color: var(--muted); }
+.badge.outside-hours { background: var(--amber); color: #fff; }
+
+.slot-times { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.slot-time-row { font-size: 12px; color: var(--muted); display: flex; gap: 6px; }
+.slot-time-row strong { color: var(--ink); font-weight: 600; }
+
+.slot-actions { display: flex; gap: 6px; }
+.slot-actions button {
+  flex: 1;
+  font-size: 11px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  color: var(--ink);
+}
+.slot-actions button.primary {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+.slot-actions button:hover { filter: brightness(0.97); }
+
+.empty-state {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding: 16px 8px;
+}
+
+.save-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
