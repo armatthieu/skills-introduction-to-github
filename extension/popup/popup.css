@@ -63,6 +63,8 @@ main { padding: 14px 16px 16px; }
 }
 
 .field-row { display: flex; gap: 10px; margin-bottom: 12px; }
+
+#your-tz-other, #prospect-tz-other { margin-top: 6px; }
 .field-row .field-group.half { margin-bottom: 0; flex: 1; min-width: 0; }
 
 input[type="text"], input[type="email"], select {

@@ -51,9 +51,17 @@ hour off because of a time-zone mixup.
 - **Editable event title**: auto-composed as `Company <> Demo` (or `Call
   with Name` if there's no company), used for the "Add to Calendar" event —
   edit it before adding if the wording isn't quite right.
-- **Type a time zone the easy way**: besides city names ("Tokyo",
-  "New_York"), both time-zone fields accept a plain UTC offset like
-  `GMT+3`, `UTC-7`, or just `-7`.
+- **Categorized time-zone picker**: a real `<select>` dropdown (visible
+  arrow included) grouped by region — Americas, Europe, Africa, Asia,
+  Pacific & Australia — with one well-known city per region+offset instead
+  of every one of the ~400 IANA zones (several of which share the same
+  offset, e.g. New York/Toronto/Miami are all "GMT-4" right now). Picking a
+  curated entry still uses that city's real IANA zone under the hood, so
+  DST keeps working correctly long-term for saved/recurring prospects. An
+  "Other" option reveals a free-text field (city name or `GMT+3`-style
+  offset) for anything not in the curated list.
+- **Duration options match the plan**: 15/30 min on Free, 15–60 min in
+  5-minute steps on Paid (`lib/plans.js`).
 - **Results survive an accidental close**: the last search (inputs +
   suggested times) is remembered and restored the next time the popup or
   in-page widget opens, so closing it by mistake doesn't lose the answer.
@@ -120,6 +128,20 @@ can be exercised with plain Node for quick sanity checks.
    confirmation badge in the top-left corner.
 
 No build step is required — it's plain HTML/CSS/JS.
+
+### Troubleshooting: "the file couldn't be accessed"
+
+This means Chrome can no longer find the folder you pointed **Load
+unpacked** at when you click the toolbar icon — usually because the
+extracted folder was moved, renamed, or deleted after loading (a common
+trap if you extracted the zip into a temp/Downloads folder that later got
+cleaned up). Content scripts already injected into open Calendar/Gmail/Meet
+tabs keep running from memory even after this happens, which is why the
+in-page 🕒 widget can look fine while the toolbar popup is broken. Fix: keep
+the extracted folder somewhere permanent, then in `chrome://extensions`
+remove the extension and **Load unpacked** again pointing at that folder
+(or click the refresh icon on the card if the folder is still at the same
+path — that's enough if nothing moved).
 
 ## How the scoring works
 

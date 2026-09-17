@@ -1,14 +1,18 @@
 (function () {
   const { TZKit, MeetingEngine, MeetingStorage, ContactParser, MeetingPlans } = window;
 
-  const yourTzInput = document.getElementById('your-tz');
+  const OTHER_VALUE = '__other__';
+
+  const yourTzSelect = document.getElementById('your-tz-select');
+  const yourTzOther = document.getElementById('your-tz-other');
   const yourTzHint = document.getElementById('your-tz-hint');
   const detectTzBtn = document.getElementById('detect-tz-btn');
   const prospectEmailInput = document.getElementById('prospect-email');
   const emailHint = document.getElementById('email-hint');
   const prospectNameInput = document.getElementById('prospect-name');
   const prospectCompanyInput = document.getElementById('prospect-company');
-  const prospectTzInput = document.getElementById('prospect-tz');
+  const prospectTzSelect = document.getElementById('prospect-tz-select');
+  const prospectTzOther = document.getElementById('prospect-tz-other');
   const tzList = document.getElementById('tz-list');
   const tzHint = document.getElementById('tz-hint');
   const eventTitleInput = document.getElementById('event-title');
@@ -58,21 +62,78 @@
   }
   populateTzList();
 
-  function tzLiveHint(input, hintEl) {
-    const value = input.value.trim();
-    if (!value) { hintEl.textContent = ''; hintEl.classList.remove('error'); return; }
-    const resolved = TZKit.resolveTimeZoneInput(value);
+  // Time zone picker: a short, categorized <select> (one well-known city
+  // per region+offset, so dozens of same-offset cities don't turn this
+  // into a long scroll) with a trailing "Other" option that reveals a
+  // free-text field for anything not in the curated list (a specific city,
+  // or a typed UTC offset like "GMT+3").
+  function populateZoneSelect(selectEl) {
+    selectEl.innerHTML = '';
+    TZKit.getCuratedZoneGroups().forEach((group) => {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = group.region;
+      group.zones.forEach((z) => {
+        const opt = document.createElement('option');
+        opt.value = z.tz;
+        opt.textContent = z.label;
+        optgroup.appendChild(opt);
+      });
+      selectEl.appendChild(optgroup);
+    });
+    const otherGroup = document.createElement('optgroup');
+    otherGroup.label = 'Other';
+    const otherOpt = document.createElement('option');
+    otherOpt.value = OTHER_VALUE;
+    otherOpt.textContent = 'Type a city, zone, or offset…';
+    otherGroup.appendChild(otherOpt);
+    selectEl.appendChild(otherGroup);
+  }
+  [yourTzSelect, prospectTzSelect].forEach(populateZoneSelect);
+
+  function getZoneRawValue(selectEl, otherInput) {
+    return selectEl.value === OTHER_VALUE ? otherInput.value.trim() : selectEl.value;
+  }
+
+  // Sets a select+other-input pair to represent `value` (a raw zone string
+  // or offset text), picking the matching curated option when there is one
+  // and falling back to "Other" with the raw text otherwise.
+  function setZoneControl(selectEl, otherInput, value) {
+    const hasOption = Array.from(selectEl.options).some((o) => o.value === value);
+    if (hasOption) {
+      selectEl.value = value;
+      otherInput.hidden = true;
+      otherInput.value = '';
+    } else {
+      selectEl.value = OTHER_VALUE;
+      otherInput.hidden = false;
+      otherInput.value = value || '';
+    }
+  }
+
+  function updateZoneHint(selectEl, otherInput, hintEl) {
+    const raw = getZoneRawValue(selectEl, otherInput);
+    if (!raw) { hintEl.textContent = ''; hintEl.classList.remove('error'); return; }
+    const resolved = TZKit.resolveTimeZoneInput(raw);
     hintEl.classList.toggle('error', !resolved);
     hintEl.textContent = resolved
       ? `${TZKit.friendlyZoneLabel(resolved)} — current time: ${TZKit.formatTimeLabel(new Date(), resolved)}`
       : 'Not recognized — try a city name or an offset like GMT+3.';
   }
-  prospectTzInput.addEventListener('input', () => tzLiveHint(prospectTzInput, tzHint));
-  yourTzInput.addEventListener('input', () => tzLiveHint(yourTzInput, yourTzHint));
+
+  function wireZoneControl(selectEl, otherInput, hintEl) {
+    selectEl.addEventListener('change', () => {
+      otherInput.hidden = selectEl.value !== OTHER_VALUE;
+      if (!otherInput.hidden) otherInput.focus();
+      updateZoneHint(selectEl, otherInput, hintEl);
+    });
+    otherInput.addEventListener('input', () => updateZoneHint(selectEl, otherInput, hintEl));
+  }
+  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint);
+  wireZoneControl(prospectTzSelect, prospectTzOther, tzHint);
 
   detectTzBtn.addEventListener('click', () => {
-    yourTzInput.value = detectedTz;
-    tzLiveHint(yourTzInput, yourTzHint);
+    setZoneControl(yourTzSelect, yourTzOther, detectedTz);
+    updateZoneHint(yourTzSelect, yourTzOther, yourTzHint);
   });
 
   // Event title: auto-composed from company/name, but stops being
@@ -113,12 +174,26 @@
 
   async function loadPrefs() {
     const prefs = await MeetingStorage.getPreferences();
-    yourTzInput.value = prefs.userTimeZone || detectedTz;
-    durationSelect.value = String(prefs.durationMinutes);
+    setZoneControl(yourTzSelect, yourTzOther, prefs.userTimeZone || detectedTz);
+    updateZoneHint(yourTzSelect, yourTzOther, yourTzHint);
     userStartSelect.value = String(prefs.userHours.start);
     userEndSelect.value = String(prefs.userHours.end);
     otherStartSelect.value = String(prefs.otherHours.start);
     otherEndSelect.value = String(prefs.otherHours.end);
+    return prefs;
+  }
+
+  function populateDurationOptions(plan, preferredMinutes) {
+    durationSelect.innerHTML = '';
+    plan.durationOptions.forEach((min) => {
+      const opt = document.createElement('option');
+      opt.value = String(min);
+      opt.textContent = `${min} min`;
+      durationSelect.appendChild(opt);
+    });
+    durationSelect.value = plan.durationOptions.includes(preferredMinutes)
+      ? String(preferredMinutes)
+      : String(plan.defaultDurationMinutes);
   }
 
   // Plan/usage display and gating. NOTE: there's no account system or
@@ -130,20 +205,18 @@
       MeetingStorage.getPreferences(),
       MeetingStorage.getUsage()
     ]);
-    return { plan: MeetingPlans.getPlan(prefs.planId), usage };
+    return { plan: MeetingPlans.getPlan(prefs.planId), usage, prefs };
   }
 
   async function refreshPlanNote() {
-    const { plan, usage } = await getCurrentPlanAndUsage();
+    const { plan, usage, prefs } = await getCurrentPlanAndUsage();
     const daysAhead = plan.defaultDaysAhead;
     resultsHeaderLabel.textContent = `Best times in the next ${daysAhead} day${daysAhead === 1 ? '' : 's'}`;
+    populateDurationOptions(plan, prefs.durationMinutes);
 
-    if (plan.monthlyFindingsLimit === Infinity) {
-      planNote.innerHTML = `<strong>${plan.label} plan</strong> — unlimited findings · ${daysAhead}-day search window`;
-      return { plan, usage };
-    }
-    planNote.innerHTML =
-      `<strong>${plan.label} plan</strong> — ${usage.count}/${plan.monthlyFindingsLimit} findings used this month · ${daysAhead}-day search window`;
+    planNote.innerHTML = plan.monthlyFindingsLimit === Infinity
+      ? `<strong>${plan.label} plan</strong> — unlimited findings · ${daysAhead}-day search window`
+      : `<strong>${plan.label} plan</strong> — ${usage.count}/${plan.monthlyFindingsLimit} findings used this month · ${daysAhead}-day search window`;
     return { plan, usage };
   }
 
@@ -161,10 +234,10 @@
         prospectEmailInput.value = p.email || '';
         prospectNameInput.value = p.name || '';
         prospectCompanyInput.value = p.company || '';
-        prospectTzInput.value = p.timeZone;
+        setZoneControl(prospectTzSelect, prospectTzOther, p.timeZone);
         eventTitleInput.dataset.userEdited = 'false';
         refreshEventTitleIfNotEdited();
-        tzLiveHint(prospectTzInput, tzHint);
+        updateZoneHint(prospectTzSelect, prospectTzOther, tzHint);
         markStale();
       });
       recentChips.appendChild(chip);
@@ -190,8 +263,9 @@
     staleNotice.hidden = true;
   }
   [
-    yourTzInput, prospectEmailInput, prospectNameInput, prospectCompanyInput, prospectTzInput,
-    durationSelect, userStartSelect, userEndSelect, otherStartSelect, otherEndSelect
+    yourTzSelect, yourTzOther, prospectEmailInput, prospectNameInput, prospectCompanyInput,
+    prospectTzSelect, prospectTzOther, durationSelect,
+    userStartSelect, userEndSelect, otherStartSelect, otherEndSelect
   ].forEach((el) => el.addEventListener('input', markStale));
 
   function renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle) {
@@ -288,7 +362,8 @@
     prospectEmailInput.value = last.prospectEmail || '';
     prospectNameInput.value = last.prospectName || '';
     prospectCompanyInput.value = last.prospectCompany || '';
-    prospectTzInput.value = last.prospectTz || '';
+    setZoneControl(prospectTzSelect, prospectTzOther, last.prospectTz || '');
+    updateZoneHint(prospectTzSelect, prospectTzOther, tzHint);
     eventTitleInput.value = last.eventTitle || '';
     eventTitleInput.dataset.userEdited = last.eventTitle ? 'true' : 'false';
 
@@ -303,19 +378,19 @@
   }
 
   async function handleFind() {
-    const userTz = TZKit.resolveTimeZoneInput(yourTzInput.value.trim());
+    const userTz = TZKit.resolveTimeZoneInput(getZoneRawValue(yourTzSelect, yourTzOther));
     if (!userTz) {
       yourTzHint.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
       yourTzHint.classList.add('error');
-      yourTzInput.focus();
+      (yourTzSelect.value === OTHER_VALUE ? yourTzOther : yourTzSelect).focus();
       return;
     }
 
-    const prospectTz = TZKit.resolveTimeZoneInput(prospectTzInput.value.trim());
+    const prospectTz = TZKit.resolveTimeZoneInput(getZoneRawValue(prospectTzSelect, prospectTzOther));
     if (!prospectTz) {
       tzHint.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
       tzHint.classList.add('error');
-      prospectTzInput.focus();
+      (prospectTzSelect.value === OTHER_VALUE ? prospectTzOther : prospectTzSelect).focus();
       return;
     }
 
@@ -387,7 +462,6 @@
 
   findBtn.addEventListener('click', handleFind);
 
-  loadPrefs().then(loadLastSearch);
+  refreshPlanNote().then(() => loadPrefs()).then(loadLastSearch);
   loadRecentProspects();
-  refreshPlanNote();
 })();

@@ -18,7 +18,9 @@
       monthlyFindingsLimit: 20, // TBD — exact cap not yet decided
       minDaysAhead: 2,          // TBD
       maxDaysAhead: 3,          // TBD — "two or three days" per the product call
-      defaultDaysAhead: 3
+      defaultDaysAhead: 3,
+      durationOptions: [15, 30], // per the product call: free = 15 or 30 min only
+      defaultDurationMinutes: 30
     },
     paid: {
       id: 'paid',
@@ -26,7 +28,9 @@
       monthlyFindingsLimit: Infinity,
       minDaysAhead: 2,          // TBD
       maxDaysAhead: 15,         // TBD — "configurable two to fifteen days"
-      defaultDaysAhead: 7
+      defaultDaysAhead: 7,
+      durationOptions: [15, 20, 25, 30, 35, 40, 45, 50, 55, 60], // 5-min steps, 15-60
+      defaultDurationMinutes: 30
     }
   };
 

@@ -82,6 +82,8 @@
 .mtf-hint.mtf-error { color: #c5221f; }
 
 .mtf-field-row { display: flex; gap: 8px; margin-bottom: 10px; }
+
+#mtf-your-tz-other, #mtf-tz-other { margin-top: 6px; }
 .mtf-field-row .mtf-field.mtf-half { margin-bottom: 0; flex: 1; min-width: 0; }
 
 .mtf-plan-note { font-size: 10px; color: #5f6368; margin-bottom: 6px; }
@@ -170,7 +172,9 @@
   border-radius: 6px;
   border: 1px solid #e0e0e0;
   background: #fff;
+  color: #202124;
   cursor: pointer;
+  font-family: inherit;
 }
 .mtf-slot-actions button.mtf-primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
 

@@ -28,7 +28,8 @@
     <div class="mtf-panel-body">
       <div class="mtf-field">
         <label>Your time zone</label>
-        <input type="text" id="mtf-your-tz" list="mtf-tz-list" placeholder="City, zone, or GMT+3 / -7" />
+        <select id="mtf-your-tz-select"></select>
+        <input type="text" id="mtf-your-tz-other" list="mtf-tz-list" placeholder="City, zone, or GMT+3 / -7" hidden />
         <div class="mtf-hint" id="mtf-your-hint"></div>
       </div>
       <div class="mtf-field">
@@ -48,7 +49,8 @@
       </div>
       <div class="mtf-field">
         <label>Prospect's time zone</label>
-        <input type="text" id="mtf-tz" list="mtf-tz-list" placeholder="City, zone, or GMT+3 / -7" />
+        <select id="mtf-tz-select"></select>
+        <input type="text" id="mtf-tz-other" list="mtf-tz-list" placeholder="City, zone, or GMT+3 / -7" hidden />
         <datalist id="mtf-tz-list"></datalist>
         <div class="mtf-hint" id="mtf-hint"></div>
       </div>
@@ -58,12 +60,7 @@
       </div>
       <div class="mtf-field">
         <label>Duration</label>
-        <select id="mtf-duration">
-          <option value="15">15 min</option>
-          <option value="30" selected>30 min</option>
-          <option value="45">45 min</option>
-          <option value="60">60 min</option>
-        </select>
+        <select id="mtf-duration"></select>
       </div>
       <button type="button" class="mtf-find-btn" id="mtf-find">Find best meeting times</button>
       <div id="mtf-plan-note" class="mtf-plan-note"></div>
@@ -98,13 +95,17 @@
     tzListEl.appendChild(opt);
   });
 
-  const yourTzInput = panel.querySelector('#mtf-your-tz');
+  const OTHER_VALUE = '__other__';
+
+  const yourTzSelect = panel.querySelector('#mtf-your-tz-select');
+  const yourTzOther = panel.querySelector('#mtf-your-tz-other');
   const yourTzHint = panel.querySelector('#mtf-your-hint');
   const emailInput = panel.querySelector('#mtf-email');
   const emailHint = panel.querySelector('#mtf-email-hint');
   const nameInput = panel.querySelector('#mtf-name');
   const companyInput = panel.querySelector('#mtf-company');
-  const tzInput = panel.querySelector('#mtf-tz');
+  const tzSelect = panel.querySelector('#mtf-tz-select');
+  const tzOther = panel.querySelector('#mtf-tz-other');
   const hintEl = panel.querySelector('#mtf-hint');
   const eventTitleInput = panel.querySelector('#mtf-event-title');
   const durationSelect = panel.querySelector('#mtf-duration');
@@ -115,9 +116,85 @@
   const staleNoticeEl = panel.querySelector('#mtf-stale-notice');
   const resultsEl = panel.querySelector('#mtf-results');
 
+  // Time zone picker: a short, categorized <select> (one well-known city
+  // per region+offset) with a trailing "Other" option that reveals a
+  // free-text field for anything not in the curated list.
+  function populateZoneSelect(selectEl) {
+    selectEl.innerHTML = '';
+    TZKit.getCuratedZoneGroups().forEach((group) => {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = group.region;
+      group.zones.forEach((z) => {
+        const opt = document.createElement('option');
+        opt.value = z.tz;
+        opt.textContent = z.label;
+        optgroup.appendChild(opt);
+      });
+      selectEl.appendChild(optgroup);
+    });
+    const otherGroup = document.createElement('optgroup');
+    otherGroup.label = 'Other';
+    const otherOpt = document.createElement('option');
+    otherOpt.value = OTHER_VALUE;
+    otherOpt.textContent = 'Type a city, zone, or offset…';
+    otherGroup.appendChild(otherOpt);
+    selectEl.appendChild(otherGroup);
+  }
+  [yourTzSelect, tzSelect].forEach(populateZoneSelect);
+
+  function getZoneRawValue(selectEl, otherInput) {
+    return selectEl.value === OTHER_VALUE ? otherInput.value.trim() : selectEl.value;
+  }
+
+  function setZoneControl(selectEl, otherInput, value) {
+    const hasOption = Array.from(selectEl.options).some((o) => o.value === value);
+    if (hasOption) {
+      selectEl.value = value;
+      otherInput.hidden = true;
+      otherInput.value = '';
+    } else {
+      selectEl.value = OTHER_VALUE;
+      otherInput.hidden = false;
+      otherInput.value = value || '';
+    }
+  }
+
+  function tzLiveHint(selectEl, otherInput, hintEl) {
+    const value = getZoneRawValue(selectEl, otherInput);
+    if (!value) { hintEl.textContent = ''; hintEl.classList.remove('mtf-error'); return; }
+    const resolved = TZKit.resolveTimeZoneInput(value);
+    hintEl.classList.toggle('mtf-error', !resolved);
+    hintEl.textContent = resolved
+      ? `${TZKit.friendlyZoneLabel(resolved)} — current time: ${TZKit.formatTimeLabel(new Date(), resolved)}`
+      : 'Not recognized — try a city name or an offset like GMT+3.';
+  }
+  function wireZoneControl(selectEl, otherInput, hintEl) {
+    selectEl.addEventListener('change', () => {
+      otherInput.hidden = selectEl.value !== OTHER_VALUE;
+      if (!otherInput.hidden) otherInput.focus();
+      tzLiveHint(selectEl, otherInput, hintEl);
+    });
+    otherInput.addEventListener('input', () => tzLiveHint(selectEl, otherInput, hintEl));
+  }
+  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint);
+  wireZoneControl(tzSelect, tzOther, hintEl);
+
+  function populateDurationOptions(plan, preferredMinutes) {
+    durationSelect.innerHTML = '';
+    plan.durationOptions.forEach((min) => {
+      const opt = document.createElement('option');
+      opt.value = String(min);
+      opt.textContent = `${min} min`;
+      durationSelect.appendChild(opt);
+    });
+    durationSelect.value = plan.durationOptions.includes(preferredMinutes)
+      ? String(preferredMinutes)
+      : String(plan.defaultDurationMinutes);
+  }
+
   MeetingStorage.getPreferences().then((prefs) => {
-    durationSelect.value = String(prefs.durationMinutes);
-    yourTzInput.value = prefs.userTimeZone || detectedTz;
+    setZoneControl(yourTzSelect, yourTzOther, prefs.userTimeZone || detectedTz);
+    tzLiveHint(yourTzSelect, yourTzOther, yourTzHint);
   });
 
   // Plan/usage display and gating. NOTE: there's no account system or
@@ -129,29 +206,18 @@
       MeetingStorage.getPreferences(),
       MeetingStorage.getUsage()
     ]);
-    return { plan: MeetingPlans.getPlan(prefs.planId), usage };
+    return { plan: MeetingPlans.getPlan(prefs.planId), usage, prefs };
   }
 
   async function refreshPlanNote() {
-    const { plan, usage } = await getCurrentPlanAndUsage();
+    const { plan, usage, prefs } = await getCurrentPlanAndUsage();
+    populateDurationOptions(plan, prefs.durationMinutes);
     planNoteEl.innerHTML = plan.monthlyFindingsLimit === Infinity
       ? `<strong>${plan.label} plan</strong> — unlimited findings · ${plan.defaultDaysAhead}-day search window`
       : `<strong>${plan.label} plan</strong> — ${usage.count}/${plan.monthlyFindingsLimit} findings used this month · ${plan.defaultDaysAhead}-day search window`;
     return { plan, usage };
   }
   refreshPlanNote();
-
-  function tzLiveHint(input, hintEl) {
-    const value = input.value.trim();
-    if (!value) { hintEl.textContent = ''; hintEl.classList.remove('mtf-error'); return; }
-    const resolved = TZKit.resolveTimeZoneInput(value);
-    hintEl.classList.toggle('mtf-error', !resolved);
-    hintEl.textContent = resolved
-      ? `${TZKit.friendlyZoneLabel(resolved)} — current time: ${TZKit.formatTimeLabel(new Date(), resolved)}`
-      : 'Not recognized — try a city name or an offset like GMT+3.';
-  }
-  tzInput.addEventListener('input', () => tzLiveHint(tzInput, hintEl));
-  yourTzInput.addEventListener('input', () => tzLiveHint(yourTzInput, yourTzHint));
 
   function computeDefaultEventTitle() {
     const company = companyInput.value.trim();
@@ -198,7 +264,7 @@
     resultsEl.classList.remove('mtf-stale');
     staleNoticeEl.hidden = true;
   }
-  [yourTzInput, emailInput, nameInput, companyInput, tzInput, durationSelect].forEach((el) => {
+  [yourTzSelect, yourTzOther, emailInput, nameInput, companyInput, tzSelect, tzOther, durationSelect].forEach((el) => {
     el.addEventListener('input', markStale);
   });
 
@@ -270,7 +336,8 @@
     emailInput.value = last.prospectEmail || '';
     nameInput.value = last.prospectName || '';
     companyInput.value = last.prospectCompany || '';
-    tzInput.value = last.prospectTz || '';
+    setZoneControl(tzSelect, tzOther, last.prospectTz || '');
+    tzLiveHint(tzSelect, tzOther, hintEl);
     eventTitleInput.value = last.eventTitle || '';
     eventTitleInput.dataset.userEdited = last.eventTitle ? 'true' : 'false';
 
@@ -282,19 +349,19 @@
   loadLastSearch();
 
   findBtn.addEventListener('click', async () => {
-    const userTz = TZKit.resolveTimeZoneInput(yourTzInput.value.trim());
+    const userTz = TZKit.resolveTimeZoneInput(getZoneRawValue(yourTzSelect, yourTzOther));
     if (!userTz) {
       yourTzHint.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
       yourTzHint.classList.add('mtf-error');
-      yourTzInput.focus();
+      (yourTzSelect.value === OTHER_VALUE ? yourTzOther : yourTzSelect).focus();
       return;
     }
 
-    const prospectTz = TZKit.resolveTimeZoneInput(tzInput.value.trim());
+    const prospectTz = TZKit.resolveTimeZoneInput(getZoneRawValue(tzSelect, tzOther));
     if (!prospectTz) {
       hintEl.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
       hintEl.classList.add('mtf-error');
-      tzInput.focus();
+      (tzSelect.value === OTHER_VALUE ? tzOther : tzSelect).focus();
       return;
     }
 

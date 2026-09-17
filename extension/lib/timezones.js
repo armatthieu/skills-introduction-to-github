@@ -176,6 +176,86 @@
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   }
 
+  // Curated, deliberately short picker list: real cities all over the
+  // world share the same current UTC offset (e.g. New York, Toronto, and
+  // Lima are all GMT-4 right now), so listing every IANA zone (~400 of
+  // them) makes the picker a long, repetitive scroll. This hand-picked set
+  // covers every populated region with one well-known representative city
+  // per offset, grouped by continent for browsing. The *value* used is
+  // still a real IANA zone (not a fixed offset), so DST is handled
+  // correctly for that city long-term — consolidation only trims the
+  // display list, it doesn't change how time math works.
+  const CURATED_ZONE_GROUPS = [
+    {
+      region: 'Americas',
+      zones: [
+        { tz: 'Pacific/Honolulu', cities: 'Honolulu' },
+        { tz: 'America/Anchorage', cities: 'Anchorage' },
+        { tz: 'America/Los_Angeles', cities: 'Los Angeles, Vancouver' },
+        { tz: 'America/Denver', cities: 'Denver, Phoenix' },
+        { tz: 'America/Chicago', cities: 'Chicago, Mexico City' },
+        { tz: 'America/New_York', cities: 'New York, Toronto, Miami' },
+        { tz: 'America/Halifax', cities: 'Halifax' },
+        { tz: 'America/Sao_Paulo', cities: 'São Paulo' },
+        { tz: 'America/Argentina/Buenos_Aires', cities: 'Buenos Aires' }
+      ]
+    },
+    {
+      region: 'Europe',
+      zones: [
+        { tz: 'Europe/London', cities: 'London, Dublin, Lisbon' },
+        { tz: 'Europe/Paris', cities: 'Paris, Berlin, Madrid, Rome' },
+        { tz: 'Europe/Athens', cities: 'Athens, Helsinki, Bucharest' },
+        { tz: 'Europe/Moscow', cities: 'Moscow' }
+      ]
+    },
+    {
+      region: 'Africa',
+      zones: [
+        { tz: 'Africa/Casablanca', cities: 'Casablanca' },
+        { tz: 'Africa/Lagos', cities: 'Lagos, West Africa' },
+        { tz: 'Africa/Cairo', cities: 'Cairo' },
+        { tz: 'Africa/Johannesburg', cities: 'Johannesburg' },
+        { tz: 'Africa/Nairobi', cities: 'Nairobi' }
+      ]
+    },
+    {
+      region: 'Asia',
+      zones: [
+        { tz: 'Asia/Dubai', cities: 'Dubai, Abu Dhabi' },
+        { tz: 'Asia/Karachi', cities: 'Karachi, Islamabad' },
+        { tz: 'Asia/Kolkata', cities: 'Mumbai, New Delhi' },
+        { tz: 'Asia/Dhaka', cities: 'Dhaka' },
+        { tz: 'Asia/Bangkok', cities: 'Bangkok, Jakarta' },
+        { tz: 'Asia/Singapore', cities: 'Singapore, Kuala Lumpur' },
+        { tz: 'Asia/Shanghai', cities: 'Beijing, Shanghai, Hong Kong' },
+        { tz: 'Asia/Tokyo', cities: 'Tokyo, Seoul' }
+      ]
+    },
+    {
+      region: 'Pacific & Australia',
+      zones: [
+        { tz: 'Australia/Perth', cities: 'Perth' },
+        { tz: 'Australia/Adelaide', cities: 'Adelaide' },
+        { tz: 'Australia/Sydney', cities: 'Sydney, Melbourne, Brisbane' },
+        { tz: 'Pacific/Auckland', cities: 'Auckland' }
+      ]
+    }
+  ];
+
+  // Returns CURATED_ZONE_GROUPS with each zone's current offset label
+  // computed live, plus a standalone UTC entry — ready to render as
+  // <optgroup> sections in a <select>.
+  function getCuratedZoneGroups() {
+    return CURATED_ZONE_GROUPS.map((group) => ({
+      region: group.region,
+      zones: group.zones.map((z) => ({
+        tz: z.tz,
+        label: `${z.cities} (${formatOffsetLabel(z.tz)})`
+      }))
+    }));
+  }
+
   global.TZKit = {
     getAllTimeZones,
     getUserTimeZone,
@@ -185,6 +265,7 @@
     isValidTimeZone,
     parseUtcOffsetInput,
     resolveTimeZoneInput,
+    getCuratedZoneGroups,
     getZonedParts,
     formatDateLabel,
     formatTimeLabel,
