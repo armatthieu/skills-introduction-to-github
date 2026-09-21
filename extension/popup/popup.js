@@ -38,6 +38,27 @@
 
   const detectedTz = TZKit.getUserTimeZone();
 
+  // Theme: "auto" (default) follows the browser/OS setting via the CSS
+  // prefers-color-scheme media query with no JS needed at all. Choosing
+  // Light or Dark here sets `data-theme` on <html>, which the stylesheet
+  // treats as an override that wins regardless of the OS setting.
+  const themeButtons = Array.from(document.getElementById('theme-toggle').querySelectorAll('button'));
+  function applyTheme(theme) {
+    if (theme === 'auto') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+    themeButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.themeValue === theme));
+  }
+  themeButtons.forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      applyTheme(btn.dataset.themeValue);
+      await MeetingStorage.savePreferences({ theme: btn.dataset.themeValue });
+    });
+  });
+  MeetingStorage.getPreferences().then((prefs) => applyTheme(prefs.theme));
+
   function populateHourOptions(select) {
     select.innerHTML = '';
     for (let h = 0; h <= 24; h++) {

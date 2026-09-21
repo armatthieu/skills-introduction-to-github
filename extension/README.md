@@ -47,7 +47,17 @@ hour off because of a time-zone mixup.
   Doe" at "Acme") into editable fields — pure pattern-matching on the
   address, no AI/network call involved, so a bad guess is a one-word edit
   away, not a redo. Personal email domains (Gmail, Yahoo, etc.) are
-  detected and skipped for the company guess.
+  detected and skipped for the company guess. **This does not, and can't,
+  detect the prospect's time zone or IP address** — an email address
+  carries no location data, and there's no reliable way to derive one from
+  it (even IP geolocation, which this doesn't attempt, is unreliable at
+  timezone precision because of VPNs/mobile carriers/corporate networks).
+  The prospect's time zone still has to be picked manually.
+- **Theme: Auto / Light / Dark**, in both the popup and the in-page widget.
+  Auto (the default) follows the browser's own setting via
+  `prefers-color-scheme` — no page reload needed, it just tracks whatever
+  Chrome is doing. Light/Dark override that regardless of the browser
+  setting. The choice is remembered per-device.
 - **Editable event title**: auto-composed as `Company <> Demo` (or `Call
   with Name` if there's no company), used for the "Add to Calendar" event —
   edit it before adding if the wording isn't quite right.

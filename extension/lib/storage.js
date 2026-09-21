@@ -13,7 +13,8 @@
     userTimeZone: null, // null = auto-detect from the browser
     // No account system or backend exists yet, so this is a local stand-in
     // for "which plan am I on" — not a real entitlement. See lib/plans.js.
-    planId: 'free'
+    planId: 'free',
+    theme: 'auto' // 'auto' | 'light' | 'dark' — 'auto' follows prefers-color-scheme
   };
 
   const LAST_SEARCH_KEY = 'mtf_last_search';

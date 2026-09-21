@@ -11,11 +11,17 @@
   const { TZKit, MeetingEngine, MeetingStorage, ContactParser, MeetingPlans } = window;
   const detectedTz = TZKit.getUserTimeZone();
 
+  // Both the launcher button and the panel live inside this wrapper so
+  // theme tokens (content.css) and the self-healing mount check below
+  // only need to deal with one element instead of two.
+  const root = document.createElement('div');
+  root.id = 'mtf-root';
+
   const launcher = document.createElement('button');
   launcher.id = 'mtf-launcher';
   launcher.title = 'Find the best meeting time';
   launcher.textContent = '🕒';
-  document.body.appendChild(launcher);
+  root.appendChild(launcher);
 
   const panel = document.createElement('div');
   panel.id = 'mtf-panel';
@@ -23,7 +29,14 @@
   panel.innerHTML = `
     <div class="mtf-panel-header">
       <strong>🕒 Meeting Time Finder</strong>
-      <button type="button" class="mtf-close-btn" id="mtf-close">✕</button>
+      <div class="mtf-header-actions">
+        <div class="mtf-theme-toggle" id="mtf-theme-toggle" role="group" aria-label="Theme">
+          <button type="button" data-theme-value="auto" title="Match browser setting">🖥️</button>
+          <button type="button" data-theme-value="light" title="Light">☀️</button>
+          <button type="button" data-theme-value="dark" title="Dark">🌙</button>
+        </div>
+        <button type="button" class="mtf-close-btn" id="mtf-close">✕</button>
+      </div>
     </div>
     <div class="mtf-panel-body">
       <div class="mtf-field">
@@ -74,16 +87,17 @@
       <div id="mtf-results" class="mtf-results"></div>
     </div>
   `;
-  document.body.appendChild(panel);
+  root.appendChild(panel);
+  document.body.appendChild(root);
 
   // Some single-page apps (Gmail and Calendar both qualify) occasionally
   // tear down and rebuild large parts of <body> on navigation, which would
-  // silently take our launcher/panel with it since document.body.appendChild
-  // only runs once. Watching body's direct children and re-appending if
-  // either goes missing keeps the widget alive across those rebuilds.
+  // silently take our widget with it since document.body.appendChild only
+  // runs once. Watching body's direct children and re-appending the
+  // (untouched, still-populated) root if it goes missing keeps the widget
+  // alive across those rebuilds.
   function ensureMounted() {
-    if (!document.body.contains(launcher)) document.body.appendChild(launcher);
-    if (!document.body.contains(panel)) document.body.appendChild(panel);
+    if (!document.body.contains(root)) document.body.appendChild(root);
   }
   new MutationObserver(ensureMounted).observe(document.body, { childList: true });
 
@@ -115,6 +129,24 @@
   const fallbackNoticeEl = panel.querySelector('#mtf-fallback-notice');
   const staleNoticeEl = panel.querySelector('#mtf-stale-notice');
   const resultsEl = panel.querySelector('#mtf-results');
+
+  // Theme: "auto" (default) follows the browser/OS setting via the CSS
+  // prefers-color-scheme media query, scoped to #mtf-root (content.css) —
+  // no JS needed for that case. Choosing Light or Dark sets `data-theme`
+  // on #mtf-root, which content.css treats as an override.
+  const themeButtons = Array.from(panel.querySelectorAll('#mtf-theme-toggle button'));
+  function applyTheme(theme) {
+    if (theme === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', theme);
+    themeButtons.forEach((btn) => btn.classList.toggle('mtf-active', btn.dataset.themeValue === theme));
+  }
+  themeButtons.forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      applyTheme(btn.dataset.themeValue);
+      await MeetingStorage.savePreferences({ theme: btn.dataset.themeValue });
+    });
+  });
+  MeetingStorage.getPreferences().then((prefs) => applyTheme(prefs.theme));
 
   // Time zone picker: a short, categorized <select> (one well-known city
   // per region+offset) with a trailing "Other" option that reveals a

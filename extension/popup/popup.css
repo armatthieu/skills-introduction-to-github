@@ -1,12 +1,87 @@
 :root {
   color-scheme: light;
   --blue: #1a73e8;
+  --blue-hover: #1765cc;
+  --blue-disabled: #a9c7f2;
+  --blue-text: #1a73e8;
   --green: #34a853;
+  --green-soft-bg: #f2faf4;
   --amber: #f9ab00;
+  --amber-soft-bg: #fff6e0;
+  --amber-soft-border: #f2d98a;
+  --amber-text: #7a5b00;
+  --red-text: #c5221f;
+  --red-soft-bg: #fce8e6;
+  --red-soft-border: #f6aea9;
   --ink: #202124;
   --muted: #5f6368;
   --border: #e0e0e0;
+  --bg: #ffffff;
   --bg-soft: #f6f8fc;
+  --surface: #ffffff;
+  --good-border: #cfe0fb;
+  --good-bg: #f7faff;
+  --workable-bg: #e0e0e0;
+  --outside-border: #f2d98a;
+  --outside-bg: #fffaf0;
+  --chip-hover-bg: #eaf1fd;
+}
+
+/* "Auto" (the default): follow the browser/OS setting via prefers-color-scheme.
+   Skipped when a manual choice ([data-theme]) is in effect. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --blue-hover: #3584e4;
+    --blue-disabled: #3b5170;
+    --blue-text: #8ab4f8;
+    --green-soft-bg: #1c2b20;
+    --amber-soft-bg: #3a2f10;
+    --amber-soft-border: #6b5518;
+    --amber-text: #f4c669;
+    --red-text: #f28b82;
+    --red-soft-bg: #3c1f1e;
+    --red-soft-border: #5c2b29;
+    --ink: #e8eaed;
+    --muted: #9aa0a6;
+    --border: #3c4043;
+    --bg: #202124;
+    --bg-soft: #2a2d30;
+    --surface: #2a2d30;
+    --good-border: #3c4f6e;
+    --good-bg: #1c2733;
+    --workable-bg: #3c4043;
+    --outside-border: #6b5518;
+    --outside-bg: #2e2a1a;
+    --chip-hover-bg: #223350;
+  }
+}
+
+/* Manual "Dark" choice — wins regardless of the OS setting. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --blue-hover: #3584e4;
+  --blue-disabled: #3b5170;
+  --blue-text: #8ab4f8;
+  --green-soft-bg: #1c2b20;
+  --amber-soft-bg: #3a2f10;
+  --amber-soft-border: #6b5518;
+  --amber-text: #f4c669;
+  --red-text: #f28b82;
+  --red-soft-bg: #3c1f1e;
+  --red-soft-border: #5c2b29;
+  --ink: #e8eaed;
+  --muted: #9aa0a6;
+  --border: #3c4043;
+  --bg: #202124;
+  --bg-soft: #2a2d30;
+  --surface: #2a2d30;
+  --good-border: #3c4f6e;
+  --good-bg: #1c2733;
+  --workable-bg: #3c4043;
+  --outside-border: #6b5518;
+  --outside-bg: #2e2a1a;
+  --chip-hover-bg: #223350;
 }
 
 * { box-sizing: border-box; }
@@ -16,7 +91,7 @@ body {
   width: 360px;
   font-family: 'Segoe UI', Roboto, Arial, sans-serif;
   color: var(--ink);
-  background: #fff;
+  background: var(--bg);
 }
 
 .header {
@@ -31,7 +106,20 @@ body {
 .header-title { display: flex; align-items: center; gap: 8px; }
 .header-title h1 { font-size: 15px; margin: 0; font-weight: 600; }
 .logo { font-size: 18px; }
-.your-zone { font-size: 11px; opacity: 0.9; text-align: right; }
+
+.theme-toggle { display: flex; gap: 2px; background: rgba(255,255,255,0.15); border-radius: 6px; padding: 2px; }
+.theme-toggle button {
+  background: none;
+  border: none;
+  color: #fff;
+  opacity: 0.6;
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.theme-toggle button.active { opacity: 1; background: rgba(255,255,255,0.25); }
 
 .surfaces-note {
   font-size: 11px;
@@ -74,17 +162,17 @@ input[type="text"], input[type="email"], select {
   border-radius: 6px;
   font-size: 13px;
   color: var(--ink);
-  background: #fff;
+  background: var(--surface);
 }
 
 input[type="text"]:focus, input[type="email"]:focus, select:focus {
   outline: none;
-  border-color: var(--blue);
+  border-color: var(--blue-text);
   box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
 }
 
 .tz-hint { font-size: 11px; color: var(--muted); margin-top: 3px; min-height: 14px; }
-.tz-hint.error { color: #c5221f; }
+.tz-hint.error { color: var(--red-text); }
 
 .recent-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .recent-label { font-size: 11px; color: var(--muted); }
@@ -98,7 +186,7 @@ input[type="text"]:focus, input[type="email"]:focus, select:focus {
   cursor: pointer;
   color: var(--ink);
 }
-.chip:hover { background: #eaf1fd; border-color: var(--blue); }
+.chip:hover { background: var(--chip-hover-bg); border-color: var(--blue-text); }
 
 .options-row {
   display: flex;
@@ -111,7 +199,7 @@ input[type="text"]:focus, input[type="email"]:focus, select:focus {
 .link-btn {
   background: none;
   border: none;
-  color: var(--blue);
+  color: var(--blue-text);
   font-size: 12px;
   cursor: pointer;
   padding: 8px 0;
@@ -122,9 +210,9 @@ input[type="text"]:focus, input[type="email"]:focus, select:focus {
 
 .fallback-notice {
   font-size: 11px;
-  color: #7a5b00;
-  background: #fff6e0;
-  border: 1px solid #f2d98a;
+  color: var(--amber-text);
+  background: var(--amber-soft-bg);
+  border: 1px solid var(--amber-soft-border);
   border-radius: 6px;
   padding: 8px 10px;
   margin: 0 0 10px;
@@ -132,9 +220,9 @@ input[type="text"]:focus, input[type="email"]:focus, select:focus {
 
 .limit-notice {
   font-size: 11px;
-  color: #c5221f;
-  background: #fce8e6;
-  border: 1px solid #f6aea9;
+  color: var(--red-text);
+  background: var(--red-soft-bg);
+  border: 1px solid var(--red-soft-border);
   border-radius: 6px;
   padding: 8px 10px;
   margin: 0 0 10px;
@@ -154,7 +242,7 @@ input[type="text"]:focus, input[type="email"]:focus, select:focus {
 
 .slot-warning {
   font-size: 11px;
-  color: #7a5b00;
+  color: var(--amber-text);
   margin-top: 2px;
 }
 
@@ -188,8 +276,8 @@ input[type="text"]:focus, input[type="email"]:focus, select:focus {
   cursor: pointer;
   margin-bottom: 4px;
 }
-.primary-btn:hover { background: #1765cc; }
-.primary-btn:disabled { background: #a9c7f2; cursor: default; }
+.primary-btn:hover { background: var(--blue-hover); }
+.primary-btn:disabled { background: var(--blue-disabled); cursor: default; }
 
 .results { margin-top: 14px; }
 .results-header {
@@ -209,9 +297,9 @@ input[type="text"]:focus, input[type="email"]:focus, select:focus {
   padding: 10px 12px;
   position: relative;
 }
-.slot-card.recommended { border-color: var(--green); background: #f2faf4; }
-.slot-card.good { border-color: #cfe0fb; background: #f7faff; }
-.slot-card.outside-hours { border-color: #f2d98a; background: #fffaf0; }
+.slot-card.recommended { border-color: var(--green); background: var(--green-soft-bg); }
+.slot-card.good { border-color: var(--good-border); background: var(--good-bg); }
+.slot-card.outside-hours { border-color: var(--outside-border); background: var(--outside-bg); }
 
 .slot-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .slot-date { font-size: 12px; font-weight: 600; color: var(--ink); }
@@ -225,7 +313,7 @@ input[type="text"]:focus, input[type="email"]:focus, select:focus {
 }
 .badge.recommended { background: var(--green); color: #fff; }
 .badge.good { background: var(--blue); color: #fff; }
-.badge.workable { background: #e0e0e0; color: var(--muted); }
+.badge.workable { background: var(--workable-bg); color: var(--muted); }
 .badge.outside-hours { background: var(--amber); color: #fff; }
 
 .slot-times { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
@@ -239,7 +327,7 @@ input[type="text"]:focus, input[type="email"]:focus, select:focus {
   padding: 6px 8px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--surface);
   cursor: pointer;
   color: var(--ink);
 }
