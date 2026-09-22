@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Meeting Time Finder for Google Workspace",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Find the best meeting time across time zones in Google Calendar, Gmail, and Google Meet — no more missed or mistimed meetings.",
   "permissions": ["storage"],
   "host_permissions": [

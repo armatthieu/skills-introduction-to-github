@@ -88,8 +88,17 @@
   // into a long scroll) with a trailing "Other" option that reveals a
   // free-text field for anything not in the curated list (a specific city,
   // or a typed UTC offset like "GMT+3").
-  function populateZoneSelect(selectEl) {
+  function populateZoneSelect(selectEl, placeholderText) {
     selectEl.innerHTML = '';
+    if (placeholderText) {
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = placeholderText;
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      placeholder.hidden = true;
+      selectEl.appendChild(placeholder);
+    }
     TZKit.getCuratedZoneGroups().forEach((group) => {
       const optgroup = document.createElement('optgroup');
       optgroup.label = group.region;
@@ -109,7 +118,13 @@
     otherGroup.appendChild(otherOpt);
     selectEl.appendChild(otherGroup);
   }
-  [yourTzSelect, prospectTzSelect].forEach(populateZoneSelect);
+  // "Your" zone always gets a real default (the detected zone) right after
+  // this, so it doesn't need a placeholder. The prospect's zone has no
+  // sensible default — defaulting to whatever's first in the list (e.g.
+  // Honolulu) would look like a real suggestion instead of an arbitrary
+  // list-order artifact, so it starts on an explicit placeholder instead.
+  populateZoneSelect(yourTzSelect);
+  populateZoneSelect(prospectTzSelect, "Choose prospect's time zone…");
 
   function getZoneRawValue(selectEl, otherInput) {
     return selectEl.value === OTHER_VALUE ? otherInput.value.trim() : selectEl.value;
@@ -407,9 +422,12 @@
       return;
     }
 
-    const prospectTz = TZKit.resolveTimeZoneInput(getZoneRawValue(prospectTzSelect, prospectTzOther));
+    const prospectRaw = getZoneRawValue(prospectTzSelect, prospectTzOther);
+    const prospectTz = TZKit.resolveTimeZoneInput(prospectRaw);
     if (!prospectTz) {
-      tzHint.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
+      tzHint.textContent = prospectRaw
+        ? 'Not recognized — try a city name or an offset like GMT+3.'
+        : "Please choose the prospect's time zone — ask them to confirm it if you're not sure.";
       tzHint.classList.add('error');
       (prospectTzSelect.value === OTHER_VALUE ? prospectTzOther : prospectTzSelect).focus();
       return;

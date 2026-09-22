@@ -69,7 +69,12 @@ hour off because of a time-zone mixup.
   curated entry still uses that city's real IANA zone under the hood, so
   DST keeps working correctly long-term for saved/recurring prospects. An
   "Other" option reveals a free-text field (city name or `GMT+3`-style
-  offset) for anything not in the curated list.
+  offset) for anything not in the curated list. The prospect's zone starts
+  on an explicit "Choose prospect's time zone…" placeholder rather than
+  defaulting to whichever city happens to be first in the list (e.g.
+  Honolulu) — that default looked like a real suggestion when it was
+  really just a list-order accident. "Your" zone keeps its real default
+  (the browser's detected zone), since that one's actually meaningful.
 - **Duration options match the plan**: 15/30 min on Free, 15–60 min in
   5-minute steps on Paid (`lib/plans.js`).
 - **Results survive an accidental close**: the last search (inputs +
