@@ -13,9 +13,14 @@ hour off because of a time-zone mixup.
   zone, pick a meeting duration and (optionally) each side's working hours,
   and get a ranked shortlist of the best times over the next 7 days.
 - **"Add to Calendar" everywhere**: every suggested slot has a button that
-  opens a prefilled Google Calendar event (title, date/time, and a note
-  about the prospect's time zone) ready to save — no manual time-zone math
-  required.
+  opens a prefilled Google Calendar event (title, date/time, a note about
+  the prospect's time zone, and — if a prospect email was entered — that
+  email pre-added as a guest) ready to save, no manual time-zone math
+  required. The invite only actually gets emailed once you click **Save**
+  on that Calendar screen and then **Send** on Calendar's own "Send
+  invitation emails?" prompt — same as adding a guest by hand. The
+  extension can't skip that step: Calendar's quick-add link only pre-fills
+  the event draft, it doesn't create or send anything on its own.
 - **In-page widget on `calendar.google.com`, `mail.google.com`, and
   `meet.google.com`**: the same floating 🕒 finder is available inline on
   all three surfaces, so you don't have to leave the tab to work out a time

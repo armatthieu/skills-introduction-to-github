@@ -164,7 +164,7 @@
   // Builds a Google Calendar "quick add" render URL for a new event.
   // https://developers.google.com/calendar (render endpoint is undocumented
   // but stable and widely used for this exact purpose).
-  function buildGoogleCalendarUrl({ title, details, start, end, timeZone }) {
+  function buildGoogleCalendarUrl({ title, details, start, end, timeZone, guestEmail }) {
     const toBasicUtc = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     const params = new URLSearchParams({
       action: 'TEMPLATE',
@@ -173,6 +173,12 @@
     });
     if (details) params.set('details', details);
     if (timeZone) params.set('ctz', timeZone);
+    // Pre-fills the guest list on the create-event screen Calendar opens to
+    // (the "add" param the quick-add URL has supported for years). This
+    // does not silently email anyone by itself — Calendar still requires
+    // clicking Save, and then "Send" on its own "Send invitation emails?"
+    // prompt, same as adding a guest by hand would.
+    if (guestEmail) params.set('add', guestEmail);
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   }
 

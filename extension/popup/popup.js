@@ -304,7 +304,7 @@
     userStartSelect, userEndSelect, otherStartSelect, otherEndSelect
   ].forEach((el) => el.addEventListener('input', markStale));
 
-  function renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle) {
+  function renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle, prospectEmail) {
     const { slots, usedFallback } = result;
     fallbackNotice.hidden = !usedFallback || !slots.length;
     resultsList.innerHTML = '';
@@ -363,7 +363,8 @@
           start: slot.start,
           end: slot.end,
           timeZone: userTz,
-          details: `Suggested by Meeting Time Finder — ${prospectDisplayName || 'prospect'} is in ${TZKit.friendlyZoneLabel(prospectTz)}.`
+          details: `Suggested by Meeting Time Finder — ${prospectDisplayName || 'prospect'} is in ${TZKit.friendlyZoneLabel(prospectTz)}.`,
+          guestEmail: prospectEmail
         });
         chrome.tabs.create({ url });
       });
@@ -406,7 +407,7 @@
     const slots = MeetingStorage.deserializeSlots(last.slotsSerialized).filter((s) => s.end > new Date());
     if (!slots.length) return;
 
-    renderSlots({ slots, usedFallback: last.usedFallback }, last.userTz, displayName(last), last.prospectTz, last.eventTitle);
+    renderSlots({ slots, usedFallback: last.usedFallback }, last.userTz, displayName(last), last.prospectTz, last.eventTitle, last.prospectEmail);
   }
 
   function displayName(fields) {
@@ -479,7 +480,7 @@
       maxResults: 8
     });
 
-    renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle);
+    renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle, prospectEmail);
     clearStale();
 
     await MeetingStorage.saveLastSearch({
