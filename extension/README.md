@@ -24,7 +24,9 @@ hour off because of a time-zone mixup.
 - **In-page widget on `calendar.google.com`, `mail.google.com`, and
   `meet.google.com`**: the same floating 🕒 finder is available inline on
   all three surfaces, so you don't have to leave the tab to work out a time
-  while drafting an email, scheduling an event, or about to join a call.
+  while drafting an email, scheduling an event, or about to join a call. It
+  has full feature parity with the popup, including the "Working hours ▾"
+  toggle below (earlier versions had it in the popup only).
 - **Gmail time-zone annotation**: while reading an email, any time mention
   that includes a zone (`3pm EST`, `15:00 UTC+2`, `9am CET`, …) is
   automatically annotated inline with the equivalent in *your* time zone —

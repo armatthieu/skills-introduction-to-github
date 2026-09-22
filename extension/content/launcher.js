@@ -71,9 +71,26 @@
         <label>Event title</label>
         <input type="text" id="mtf-event-title" placeholder="Auto-filled once you add a name or company" />
       </div>
-      <div class="mtf-field">
-        <label>Duration</label>
-        <select id="mtf-duration"></select>
+      <div class="mtf-options-row">
+        <div class="mtf-field mtf-compact">
+          <label>Duration</label>
+          <select id="mtf-duration"></select>
+        </div>
+        <button type="button" class="mtf-link-btn" id="mtf-toggle-advanced">Working hours ▾</button>
+      </div>
+      <div class="mtf-advanced" id="mtf-advanced-panel" hidden>
+        <div class="mtf-hours-row">
+          <span class="mtf-hours-label">You</span>
+          <select id="mtf-user-start"></select>
+          <span>to</span>
+          <select id="mtf-user-end"></select>
+        </div>
+        <div class="mtf-hours-row">
+          <span class="mtf-hours-label">Prospect</span>
+          <select id="mtf-other-start"></select>
+          <span>to</span>
+          <select id="mtf-other-end"></select>
+        </div>
       </div>
       <button type="button" class="mtf-find-btn" id="mtf-find">Find best meeting times</button>
       <div id="mtf-plan-note" class="mtf-plan-note"></div>
@@ -123,6 +140,12 @@
   const hintEl = panel.querySelector('#mtf-hint');
   const eventTitleInput = panel.querySelector('#mtf-event-title');
   const durationSelect = panel.querySelector('#mtf-duration');
+  const toggleAdvancedBtn = panel.querySelector('#mtf-toggle-advanced');
+  const advancedPanel = panel.querySelector('#mtf-advanced-panel');
+  const userStartSelect = panel.querySelector('#mtf-user-start');
+  const userEndSelect = panel.querySelector('#mtf-user-end');
+  const otherStartSelect = panel.querySelector('#mtf-other-start');
+  const otherEndSelect = panel.querySelector('#mtf-other-end');
   const findBtn = panel.querySelector('#mtf-find');
   const planNoteEl = panel.querySelector('#mtf-plan-note');
   const limitNoticeEl = panel.querySelector('#mtf-limit-notice');
@@ -239,9 +262,30 @@
       : String(plan.defaultDurationMinutes);
   }
 
+  function populateHourOptions(select) {
+    select.innerHTML = '';
+    for (let h = 0; h <= 24; h++) {
+      const opt = document.createElement('option');
+      opt.value = String(h);
+      const label = h === 0 ? '12:00 AM' : h === 12 ? '12:00 PM' : h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
+      opt.textContent = h === 24 ? '12:00 AM (+1d)' : label;
+      select.appendChild(opt);
+    }
+  }
+  [userStartSelect, userEndSelect, otherStartSelect, otherEndSelect].forEach(populateHourOptions);
+
+  toggleAdvancedBtn.addEventListener('click', () => {
+    advancedPanel.hidden = !advancedPanel.hidden;
+    toggleAdvancedBtn.textContent = advancedPanel.hidden ? 'Working hours ▾' : 'Working hours ▴';
+  });
+
   MeetingStorage.getPreferences().then((prefs) => {
     setZoneControl(yourTzSelect, yourTzOther, prefs.userTimeZone || detectedTz);
     tzLiveHint(yourTzSelect, yourTzOther, yourTzHint);
+    userStartSelect.value = String(prefs.userHours.start);
+    userEndSelect.value = String(prefs.userHours.end);
+    otherStartSelect.value = String(prefs.otherHours.start);
+    otherEndSelect.value = String(prefs.otherHours.end);
   });
 
   // Plan/usage display and gating. NOTE: there's no account system or
@@ -311,7 +355,10 @@
     resultsEl.classList.remove('mtf-stale');
     staleNoticeEl.hidden = true;
   }
-  [yourTzSelect, yourTzOther, emailInput, nameInput, companyInput, tzSelect, tzOther, durationSelect].forEach((el) => {
+  [
+    yourTzSelect, yourTzOther, emailInput, nameInput, companyInput, tzSelect, tzOther, durationSelect,
+    userStartSelect, userEndSelect, otherStartSelect, otherEndSelect
+  ].forEach((el) => {
     el.addEventListener('input', markStale);
   });
 
@@ -429,8 +476,12 @@
     findBtn.textContent = 'Finding times…';
 
     const durationMinutes = parseInt(durationSelect.value, 10);
+    const userHours = { start: parseInt(userStartSelect.value, 10), end: parseInt(userEndSelect.value, 10) };
+    const otherHours = { start: parseInt(otherStartSelect.value, 10), end: parseInt(otherEndSelect.value, 10) };
     await MeetingStorage.savePreferences({
       durationMinutes,
+      userHours,
+      otherHours,
       userTimeZone: userTz === detectedTz ? null : userTz
     });
 
@@ -449,13 +500,12 @@
       });
     }
 
-    const prefs = await MeetingStorage.getPreferences();
     const result = MeetingEngine.findBestSlots({
       userTz,
       otherTz: prospectTz,
       durationMinutes,
-      userHours: prefs.userHours,
-      otherHours: prefs.otherHours,
+      userHours,
+      otherHours,
       daysAhead: plan.defaultDaysAhead,
       maxResults: 6
     });
