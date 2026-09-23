@@ -42,7 +42,8 @@
       <div class="mtf-field">
         <label>Your time zone</label>
         <select id="mtf-your-tz-select"></select>
-        <input type="text" id="mtf-your-tz-other" list="mtf-tz-list" placeholder="City, zone, or GMT+3 / -7" hidden />
+        <input type="text" id="mtf-your-tz-other" placeholder="Any city, zone, or GMT+3 / -7" hidden />
+        <div class="mtf-tz-suggestions" id="mtf-your-tz-suggestions" hidden></div>
         <div class="mtf-hint" id="mtf-your-hint"></div>
       </div>
       <div class="mtf-field">
@@ -63,8 +64,8 @@
       <div class="mtf-field">
         <label>Prospect's time zone</label>
         <select id="mtf-tz-select"></select>
-        <input type="text" id="mtf-tz-other" list="mtf-tz-list" placeholder="City, zone, or GMT+3 / -7" hidden />
-        <datalist id="mtf-tz-list"></datalist>
+        <input type="text" id="mtf-tz-other" placeholder="Any city, zone, or GMT+3 / -7" hidden />
+        <div class="mtf-tz-suggestions" id="mtf-tz-suggestions" hidden></div>
         <div class="mtf-hint" id="mtf-hint"></div>
       </div>
       <div class="mtf-field">
@@ -118,18 +119,11 @@
   }
   new MutationObserver(ensureMounted).observe(document.body, { childList: true });
 
-  const tzListEl = panel.querySelector('#mtf-tz-list');
-  TZKit.getAllTimeZones().forEach((zone) => {
-    const opt = document.createElement('option');
-    opt.value = zone;
-    opt.label = TZKit.friendlyZoneLabel(zone);
-    tzListEl.appendChild(opt);
-  });
-
   const OTHER_VALUE = '__other__';
 
   const yourTzSelect = panel.querySelector('#mtf-your-tz-select');
   const yourTzOther = panel.querySelector('#mtf-your-tz-other');
+  const yourTzSuggestions = panel.querySelector('#mtf-your-tz-suggestions');
   const yourTzHint = panel.querySelector('#mtf-your-hint');
   const emailInput = panel.querySelector('#mtf-email');
   const emailHint = panel.querySelector('#mtf-email-hint');
@@ -137,6 +131,7 @@
   const companyInput = panel.querySelector('#mtf-company');
   const tzSelect = panel.querySelector('#mtf-tz-select');
   const tzOther = panel.querySelector('#mtf-tz-other');
+  const tzSuggestions = panel.querySelector('#mtf-tz-suggestions');
   const hintEl = panel.querySelector('#mtf-hint');
   const eventTitleInput = panel.querySelector('#mtf-event-title');
   const durationSelect = panel.querySelector('#mtf-duration');
@@ -238,16 +233,58 @@
       ? `${TZKit.friendlyZoneLabel(resolved)} — current time: ${TZKit.formatTimeLabel(new Date(), resolved)}`
       : 'Not recognized — try a city name or an offset like GMT+3.';
   }
-  function wireZoneControl(selectEl, otherInput, hintEl) {
+  // Live suggestions for the "Other" free-text field: matches any of the
+  // ~400 real IANA zones by city name (not just the curated ~30), so
+  // typing "Madrid" or "Casablanca" or "Buenos Aires" surfaces the right
+  // zone even though none of those are in the curated dropdown. A typed
+  // offset ("GMT+5:30") gets its own suggestion row up top too.
+  function renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl) {
+    const query = otherInput.value.trim();
+    suggestionsEl.innerHTML = '';
+    if (!query) { suggestionsEl.hidden = true; return; }
+
+    const items = TZKit.searchZones(query, 6);
+    if (TZKit.parseUtcOffsetInput(query) !== null) {
+      const offsetZone = TZKit.resolveTimeZoneInput(query);
+      if (offsetZone && !items.some((m) => m.zone === offsetZone)) {
+        items.unshift({ zone: offsetZone, label: TZKit.friendlyZoneLabel(offsetZone) });
+      }
+    }
+    if (!items.length) { suggestionsEl.hidden = true; return; }
+
+    items.forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'mtf-tz-suggestion';
+      row.textContent = item.label;
+      // mousedown (not click) + preventDefault fires before the input's
+      // blur, so selecting a suggestion doesn't need a blur/hide race.
+      row.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        otherInput.value = item.zone;
+        suggestionsEl.hidden = true;
+        tzLiveHint(selectEl, otherInput, hintEl);
+        markStale();
+      });
+      suggestionsEl.appendChild(row);
+    });
+    suggestionsEl.hidden = false;
+  }
+
+  function wireZoneControl(selectEl, otherInput, hintEl, suggestionsEl) {
     selectEl.addEventListener('change', () => {
       otherInput.hidden = selectEl.value !== OTHER_VALUE;
       if (!otherInput.hidden) otherInput.focus();
       tzLiveHint(selectEl, otherInput, hintEl);
     });
-    otherInput.addEventListener('input', () => tzLiveHint(selectEl, otherInput, hintEl));
+    otherInput.addEventListener('input', () => {
+      tzLiveHint(selectEl, otherInput, hintEl);
+      renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl);
+    });
+    otherInput.addEventListener('focus', () => renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl));
+    otherInput.addEventListener('blur', () => { suggestionsEl.hidden = true; });
   }
-  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint);
-  wireZoneControl(tzSelect, tzOther, hintEl);
+  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint, yourTzSuggestions);
+  wireZoneControl(tzSelect, tzOther, hintEl, tzSuggestions);
 
   function populateDurationOptions(plan, preferredMinutes) {
     durationSelect.innerHTML = '';
@@ -507,7 +544,10 @@
       userHours,
       otherHours,
       daysAhead: plan.defaultDaysAhead,
-      maxResults: 6
+      // One slot per calendar day, so this needs to be at least daysAhead
+      // or a wide window (e.g. the 14-day dev plan) would silently get
+      // truncated to just its first several days.
+      maxResults: plan.defaultDaysAhead
     });
     renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle, prospectEmail);
     clearStale();

@@ -24,7 +24,8 @@
     <section class="field-group">
       <label for="your-tz-select">Your time zone</label>
       <select id="your-tz-select"></select>
-      <input id="your-tz-other" type="text" list="tz-list" placeholder="City, zone, or GMT+3 / -7" autocomplete="off" hidden />
+      <input id="your-tz-other" type="text" placeholder="Any city, zone, or GMT+3 / -7" autocomplete="off" hidden />
+      <div class="tz-suggestions" id="your-tz-suggestions" hidden></div>
       <button type="button" id="detect-tz-btn" class="link-btn small">Use detected zone</button>
       <div class="tz-hint" id="your-tz-hint"></div>
     </section>
@@ -49,8 +50,8 @@
     <section class="field-group">
       <label for="prospect-tz-select">Prospect's time zone</label>
       <select id="prospect-tz-select"></select>
-      <input id="prospect-tz-other" type="text" list="tz-list" placeholder="City, zone, or GMT+3 / -7" autocomplete="off" hidden />
-      <datalist id="tz-list"></datalist>
+      <input id="prospect-tz-other" type="text" placeholder="Any city, zone, or GMT+3 / -7" autocomplete="off" hidden />
+      <div class="tz-suggestions" id="prospect-tz-suggestions" hidden></div>
       <div class="tz-hint" id="tz-hint"></div>
     </section>
 

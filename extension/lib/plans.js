@@ -31,6 +31,20 @@
       defaultDaysAhead: 7,
       durationOptions: [15, 20, 25, 30, 35, 40, 45, 50, 55, 60], // 5-min steps, 15-60
       defaultDurationMinutes: 30
+    },
+    // Not a real pricing tier — an unrestricted plan for whoever is
+    // actively developing/using this ahead of any real plan enforcement.
+    // Switch into it with the console snippet in the README's
+    // "Monetization" section (planId defaults to 'free' for everyone else).
+    dev: {
+      id: 'dev',
+      label: 'Dev',
+      monthlyFindingsLimit: Infinity,
+      minDaysAhead: 1,
+      maxDaysAhead: 21,
+      defaultDaysAhead: 14,
+      durationOptions: [15, 20, 25, 30, 35, 40, 45, 50, 55, 60],
+      defaultDurationMinutes: 30
     }
   };
 

@@ -63,7 +63,11 @@
   function parseUtcOffsetInput(text) {
     const trimmed = (text || '').trim();
     if (/^(GMT|UTC)$/i.test(trimmed)) return 0;
-    const m = /^(?:GMT|UTC)?\s*([+-])\s*(\d{1,2})(?::?(\d{2}))?$/i.exec(trimmed);
+    // Sign is optional (bare "5:30" is treated as +5:30 — nobody typing a
+    // raw offset means anything else by leaving the sign off), and the
+    // hour/minute separator accepts ':', '.', or ',' since which one people
+    // reach for varies by keyboard/locale.
+    const m = /^(?:GMT|UTC)?\s*([+-]?)\s*(\d{1,2})(?:[:.,]?(\d{2}))?$/i.exec(trimmed);
     if (!m) return null;
     const sign = m[1] === '-' ? -1 : 1;
     const hours = parseInt(m[2], 10);
@@ -109,6 +113,32 @@
 
     const label = formatOffsetLabelFromMinutes(offsetMinutes);
     return getAllTimeZones().find((z) => formatOffsetLabel(z) === label) || null;
+  }
+
+  // Finds real IANA zones by city name — not just the ~30 curated ones,
+  // any of the ~400 zones Intl knows about (Madrid, Casablanca, Sao Paulo,
+  // Buenos Aires, all of them, since they're each their own IANA zone).
+  // Ranks exact/prefix matches on the city name above ones that only match
+  // somewhere in the full zone path, so typing "Madrid" surfaces
+  // "Europe/Madrid" before some unrelated zone that merely contains "madrid"
+  // as a substring elsewhere.
+  function searchZones(query, limit) {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) return [];
+    const results = [];
+    for (const zone of getAllTimeZones()) {
+      const city = friendlyZoneName(zone).replace(/_/g, ' ').toLowerCase();
+      const full = zone.replace(/_/g, ' ').toLowerCase();
+      let score;
+      if (city === q) score = 0;
+      else if (city.startsWith(q)) score = 1;
+      else if (city.includes(q)) score = 2;
+      else if (full.includes(q)) score = 3;
+      else continue;
+      results.push({ zone, score, city });
+    }
+    results.sort((a, b) => a.score - b.score || a.city.localeCompare(b.city));
+    return results.slice(0, limit || 8).map((r) => ({ zone: r.zone, label: friendlyZoneLabel(r.zone) }));
   }
 
   // Display label for a zone that's friendly for both real IANA zones
@@ -271,6 +301,7 @@
     isValidTimeZone,
     parseUtcOffsetInput,
     resolveTimeZoneInput,
+    searchZones,
     getCuratedZoneGroups,
     getZonedParts,
     formatDateLabel,

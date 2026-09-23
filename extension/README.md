@@ -75,8 +75,12 @@ hour off because of a time-zone mixup.
   offset, e.g. New York/Toronto/Miami are all "GMT-4" right now). Picking a
   curated entry still uses that city's real IANA zone under the hood, so
   DST keeps working correctly long-term for saved/recurring prospects. An
-  "Other" option reveals a free-text field (city name or `GMT+3`-style
-  offset) for anything not in the curated list. The prospect's zone starts
+  "Other" option reveals a free-text field for anything not in the curated
+  list — typing any city Intl knows about (Madrid, Casablanca, Sao Paulo,
+  Buenos Aires, ~400 in total, not just the curated ~30) surfaces it as a
+  live clickable suggestion, and a typed UTC offset (`GMT+3`, `+5:30`,
+  bare `5:30` with no sign) gets its own suggestion row too. The prospect's
+  zone starts
   on an explicit "Choose prospect's time zone…" placeholder rather than
   defaulting to whichever city happens to be first in the list (e.g.
   Honolulu) — that default looked like a real suggestion when it was
@@ -234,6 +238,9 @@ chrome.storage.sync.get('mtf_prefs', (r) =>
   chrome.storage.sync.set({ mtf_prefs: { ...r.mtf_prefs, planId: 'paid' } })
 );
 ```
+There's also a `dev` plan (unlimited findings, 14-day default search
+window, 1–21 days configurable) meant for whoever's actively using this
+ahead of any real plan enforcement — same snippet with `planId: 'dev'`.
 
 ## Suggested next steps
 

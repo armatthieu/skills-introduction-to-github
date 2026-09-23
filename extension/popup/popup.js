@@ -13,7 +13,8 @@
   const prospectCompanyInput = document.getElementById('prospect-company');
   const prospectTzSelect = document.getElementById('prospect-tz-select');
   const prospectTzOther = document.getElementById('prospect-tz-other');
-  const tzList = document.getElementById('tz-list');
+  const yourTzSuggestions = document.getElementById('your-tz-suggestions');
+  const prospectTzSuggestions = document.getElementById('prospect-tz-suggestions');
   const tzHint = document.getElementById('tz-hint');
   const eventTitleInput = document.getElementById('event-title');
   const saveProspectCheckbox = document.getElementById('save-prospect');
@@ -70,18 +71,6 @@
     }
   }
   [userStartSelect, userEndSelect, otherStartSelect, otherEndSelect].forEach(populateHourOptions);
-
-  function populateTzList() {
-    const zones = TZKit.getAllTimeZones();
-    tzList.innerHTML = '';
-    zones.forEach((zone) => {
-      const opt = document.createElement('option');
-      opt.value = zone;
-      opt.label = TZKit.friendlyZoneLabel(zone);
-      tzList.appendChild(opt);
-    });
-  }
-  populateTzList();
 
   // Time zone picker: a short, categorized <select> (one well-known city
   // per region+offset, so dozens of same-offset cities don't turn this
@@ -156,16 +145,58 @@
       : 'Not recognized — try a city name or an offset like GMT+3.';
   }
 
-  function wireZoneControl(selectEl, otherInput, hintEl) {
+  // Live suggestions for the "Other" free-text field: matches any of the
+  // ~400 real IANA zones by city name (not just the curated ~30), so
+  // typing "Madrid" or "Casablanca" or "Buenos Aires" surfaces the right
+  // zone even though none of those are in the curated dropdown. A typed
+  // offset ("GMT+5:30") gets its own suggestion row up top too.
+  function renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl) {
+    const query = otherInput.value.trim();
+    suggestionsEl.innerHTML = '';
+    if (!query) { suggestionsEl.hidden = true; return; }
+
+    const items = TZKit.searchZones(query, 6);
+    if (TZKit.parseUtcOffsetInput(query) !== null) {
+      const offsetZone = TZKit.resolveTimeZoneInput(query);
+      if (offsetZone && !items.some((m) => m.zone === offsetZone)) {
+        items.unshift({ zone: offsetZone, label: TZKit.friendlyZoneLabel(offsetZone) });
+      }
+    }
+    if (!items.length) { suggestionsEl.hidden = true; return; }
+
+    items.forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'tz-suggestion';
+      row.textContent = item.label;
+      // mousedown (not click) + preventDefault fires before the input's
+      // blur, so selecting a suggestion doesn't need a blur/hide race.
+      row.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        otherInput.value = item.zone;
+        suggestionsEl.hidden = true;
+        updateZoneHint(selectEl, otherInput, hintEl);
+        markStale();
+      });
+      suggestionsEl.appendChild(row);
+    });
+    suggestionsEl.hidden = false;
+  }
+
+  function wireZoneControl(selectEl, otherInput, hintEl, suggestionsEl) {
     selectEl.addEventListener('change', () => {
       otherInput.hidden = selectEl.value !== OTHER_VALUE;
       if (!otherInput.hidden) otherInput.focus();
       updateZoneHint(selectEl, otherInput, hintEl);
     });
-    otherInput.addEventListener('input', () => updateZoneHint(selectEl, otherInput, hintEl));
+    otherInput.addEventListener('input', () => {
+      updateZoneHint(selectEl, otherInput, hintEl);
+      renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl);
+    });
+    otherInput.addEventListener('focus', () => renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl));
+    otherInput.addEventListener('blur', () => { suggestionsEl.hidden = true; });
   }
-  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint);
-  wireZoneControl(prospectTzSelect, prospectTzOther, tzHint);
+  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint, yourTzSuggestions);
+  wireZoneControl(prospectTzSelect, prospectTzOther, tzHint, prospectTzSuggestions);
 
   detectTzBtn.addEventListener('click', () => {
     setZoneControl(yourTzSelect, yourTzOther, detectedTz);
@@ -477,7 +508,10 @@
       userHours: prefs.userHours,
       otherHours: prefs.otherHours,
       daysAhead: plan.defaultDaysAhead,
-      maxResults: 8
+      // One slot per calendar day, so this needs to be at least daysAhead
+      // or a wide window (e.g. the 14-day dev plan) would silently get
+      // truncated to just its first several days.
+      maxResults: plan.defaultDaysAhead
     });
 
     renderSlots(result, userTz, prospectDisplayName, prospectTz, eventTitle, prospectEmail);

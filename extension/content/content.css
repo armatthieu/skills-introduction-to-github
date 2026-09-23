@@ -180,6 +180,24 @@
 .mtf-hint { font-size: 10px; color: var(--muted); margin-top: 3px; min-height: 12px; }
 .mtf-hint.mtf-error { color: var(--red-text); }
 
+.mtf-tz-suggestions {
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.mtf-tz-suggestion {
+  padding: 6px 9px;
+  font-size: 11px;
+  color: var(--ink);
+  background: var(--surface);
+  cursor: pointer;
+}
+.mtf-tz-suggestion:hover { background: var(--chip-bg); }
+.mtf-tz-suggestion + .mtf-tz-suggestion { border-top: 1px solid var(--border); }
+
 .mtf-field-row { display: flex; gap: 8px; margin-bottom: 10px; }
 
 #mtf-your-tz-other, #mtf-tz-other { margin-top: 6px; }
