@@ -103,6 +103,9 @@
         Inputs changed since this search — click "Find best meeting times" to refresh.
       </div>
       <div id="mtf-results" class="mtf-results"></div>
+      <div class="mtf-footer">
+        <a id="mtf-bug-report-link" class="mtf-footer-link" href="mailto:matthieuratrimoson96@gmail.com?subject=Meeting%20Time%20Finder%20-%20Bug%20report">🐛 Report a bug</a>
+      </div>
     </div>
   `;
   root.appendChild(panel);
@@ -147,6 +150,16 @@
   const fallbackNoticeEl = panel.querySelector('#mtf-fallback-notice');
   const staleNoticeEl = panel.querySelector('#mtf-stale-notice');
   const resultsEl = panel.querySelector('#mtf-results');
+
+  // Pre-fill the bug-report mailto with enough context to actually act on
+  // (version + browser + which site it's running on), so a report doesn't
+  // start with a back-and-forth just to find out what build someone's on.
+  const bugReportLink = panel.querySelector('#mtf-bug-report-link');
+  if (bugReportLink) {
+    const version = chrome.runtime.getManifest().version;
+    const body = `\n\n---\nExtension version: ${version}\nSite: ${location.hostname}\nBrowser: ${navigator.userAgent}\nYour time zone: ${detectedTz}`;
+    bugReportLink.href += `&body=${encodeURIComponent(body)}`;
+  }
 
   // Theme: "auto" (default) follows the browser/OS setting via the CSS
   // prefers-color-scheme media query, scoped to #mtf-root (content.css) —

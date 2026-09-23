@@ -335,6 +335,15 @@
 
 .mtf-empty { font-size: 11px; color: var(--muted); text-align: center; padding: 10px; }
 
+.mtf-footer {
+  text-align: center;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.mtf-footer-link { font-size: 10px; color: var(--muted); text-decoration: none; }
+.mtf-footer-link:hover { color: var(--blue-text); text-decoration: underline; }
+
 /* Gmail inline time-zone conversion badge. These are inserted directly
    into Gmail's own message DOM (not inside #mtf-root), so they can't use
    the scoped tokens above — following prefers-color-scheme directly here

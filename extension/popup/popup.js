@@ -39,6 +39,16 @@
 
   const detectedTz = TZKit.getUserTimeZone();
 
+  // Pre-fill the bug-report mailto with enough context to actually act on
+  // (version + browser), so a report doesn't start with a back-and-forth
+  // just to find out what build someone's on.
+  const bugReportLink = document.getElementById('bug-report-link');
+  if (bugReportLink) {
+    const version = chrome.runtime.getManifest().version;
+    const body = `\n\n---\nExtension version: ${version}\nBrowser: ${navigator.userAgent}\nYour time zone: ${detectedTz}`;
+    bugReportLink.href += `&body=${encodeURIComponent(body)}`;
+  }
+
   // Theme: "auto" (default) follows the browser/OS setting via the CSS
   // prefers-color-scheme media query with no JS needed at all. Choosing
   // Light or Dark here sets `data-theme` on <html>, which the stylesheet

@@ -93,6 +93,9 @@ hour off because of a time-zone mixup.
   in-page widget opens, so closing it by mistake doesn't lose the answer.
   It's shown dimmed with a "click Find to refresh" nudge the moment any
   input is edited, rather than being wiped outright.
+- **"Report a bug" link**: a footer link in the popup and widget opens a
+  pre-filled email (extension version, browser, site, your time zone
+  already included) — no account or contact form to set up.
 
 ## What it deliberately does *not* do yet
 
@@ -168,6 +171,30 @@ the extracted folder somewhere permanent, then in `chrome://extensions`
 remove the extension and **Load unpacked** again pointing at that folder
 (or click the refresh icon on the card if the folder is still at the same
 path — that's enough if nothing moved).
+
+## Publishing to the Chrome Web Store
+
+1. Register as a developer at the
+   [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
+   (one-time $5 fee).
+2. Prepare listing assets: at least one screenshot (1280×800 or 640×400),
+   a short description (≤132 chars) and a longer one, category
+   (Productivity), and a **privacy policy URL** — required because this
+   extension handles personal data (prospect names/emails). `PRIVACY.md`
+   in this repo is the source-of-truth text; it links to a hosted, public
+   copy — use that URL in the Store listing's privacy policy field.
+3. Fill out the Store's **permissions justification** and **data usage**
+   forms — explain in plain language why `calendar.google.com`,
+   `mail.google.com`, and `meet.google.com` host permissions are needed
+   (to show the in-page widget / annotate time zones there), and declare
+   that stored data isn't sold or used outside the extension's stated
+   purpose.
+4. Zip this `extension/` folder and upload it in the dashboard, then
+   submit for review. First review is typically hours to a few days.
+
+Only the free plan should ship here — there's no real payment/entitlement
+backend yet (see Monetization below), so nothing about pricing needs to be
+decided before this step.
 
 ## How the scoring works
 
