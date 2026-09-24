@@ -7,6 +7,12 @@ next week; while you're emailing or on a call, it keeps everyone's time
 zone visible and unambiguous so a meeting never gets missed or shows up an
 hour off because of a time-zone mixup.
 
+**Picking this project back up (including in a fresh Claude conversation
+or a different account)?** Read `STATUS.md` first — it tracks the
+business/strategic decisions (monetization model, backend choice, payment
+research) that aren't captured below, since this file is scoped to the
+extension's technical details.
+
 ## What it does today (MVP scope)
 
 - **Popup UI** (click the toolbar icon): enter a prospect's name + time
