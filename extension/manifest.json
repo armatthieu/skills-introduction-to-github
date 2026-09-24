@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Meeting Time Finder for Google Workspace",
+  "version": "0.8.1",
+  "description": "Find the best meeting time across time zones in Google Calendar, Gmail, and Google Meet — no more missed or mistimed meetings.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://calendar.google.com/*",
+    "https://mail.google.com/*",
+    "https://meet.google.com/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Find the best meeting time",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://calendar.google.com/*",
+        "https://mail.google.com/*",
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "lib/timezones.js",
+        "lib/engine.js",
+        "lib/storage.js",
+        "lib/contact-parser.js",
+        "lib/plans.js",
+        "content/launcher.js",
+        "content/gmail-annotate.js",
+        "content/meet-badge.js"
+      ],
+      "css": ["content/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

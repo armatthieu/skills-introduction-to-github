@@ -1,0 +1,385 @@
+/* Namespaced with "mtf-" (Meeting Time Finder) to avoid clashing with
+   Google Calendar's own styles.
+
+   Color tokens are scoped to #mtf-root (the wrapper launcher.js creates
+   around the launcher button + panel) rather than :root/<html>, since we
+   can't touch the host page's own root — CSS custom properties still
+   inherit normally to descendants regardless of their own position:fixed. */
+
+#mtf-root {
+  --blue: #1a73e8;
+  --blue-hover: #1765cc;
+  --blue-disabled: #a9c7f2;
+  --blue-text: #1a73e8;
+  --green: #34a853;
+  --green-soft-bg: #f2faf4;
+  --amber: #f9ab00;
+  --amber-soft-bg: #fff6e0;
+  --amber-soft-border: #f2d98a;
+  --amber-text: #7a5b00;
+  --red-text: #c5221f;
+  --red-soft-bg: #fce8e6;
+  --red-soft-border: #f6aea9;
+  --ink: #202124;
+  --muted: #5f6368;
+  --border: #e0e0e0;
+  --bg-soft: #f6f8fc;
+  --surface: #ffffff;
+  --good-border: #cfe0fb;
+  --good-bg: #f7faff;
+  --workable-bg: #e0e0e0;
+  --outside-border: #f2d98a;
+  --outside-bg: #fffaf0;
+  --chip-bg: #eaf1fd;
+}
+
+@media (prefers-color-scheme: dark) {
+  #mtf-root:not([data-theme="light"]) {
+    --blue-hover: #3584e4;
+    --blue-disabled: #3b5170;
+    --blue-text: #8ab4f8;
+    --green-soft-bg: #1c2b20;
+    --amber-soft-bg: #3a2f10;
+    --amber-soft-border: #6b5518;
+    --amber-text: #f4c669;
+    --red-text: #f28b82;
+    --red-soft-bg: #3c1f1e;
+    --red-soft-border: #5c2b29;
+    --ink: #e8eaed;
+    --muted: #9aa0a6;
+    --border: #3c4043;
+    --bg-soft: #2a2d30;
+    --surface: #2a2d30;
+    --good-border: #3c4f6e;
+    --good-bg: #1c2733;
+    --workable-bg: #3c4043;
+    --outside-border: #6b5518;
+    --outside-bg: #2e2a1a;
+    --chip-bg: #223350;
+  }
+}
+
+#mtf-root[data-theme="dark"] {
+  --blue-hover: #3584e4;
+  --blue-disabled: #3b5170;
+  --blue-text: #8ab4f8;
+  --green-soft-bg: #1c2b20;
+  --amber-soft-bg: #3a2f10;
+  --amber-soft-border: #6b5518;
+  --amber-text: #f4c669;
+  --red-text: #f28b82;
+  --red-soft-bg: #3c1f1e;
+  --red-soft-border: #5c2b29;
+  --ink: #e8eaed;
+  --muted: #9aa0a6;
+  --border: #3c4043;
+  --bg-soft: #2a2d30;
+  --surface: #2a2d30;
+  --good-border: #3c4f6e;
+  --good-bg: #1c2733;
+  --workable-bg: #3c4043;
+  --outside-border: #6b5518;
+  --outside-bg: #2e2a1a;
+  --chip-bg: #223350;
+}
+
+#mtf-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#mtf-launcher:hover { background: var(--blue-hover); }
+
+#mtf-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 88px;
+  width: 340px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  z-index: 2147483647;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+#mtf-panel.mtf-hidden { display: none; }
+
+.mtf-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--blue);
+  color: #fff;
+  border-radius: 10px 10px 0 0;
+}
+.mtf-panel-header strong { font-size: 13px; }
+.mtf-header-actions { display: flex; align-items: center; gap: 6px; }
+.mtf-theme-toggle { display: flex; gap: 2px; background: rgba(255,255,255,0.15); border-radius: 6px; padding: 2px; }
+.mtf-theme-toggle button {
+  background: none;
+  border: none;
+  color: #fff;
+  opacity: 0.6;
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.mtf-theme-toggle button.mtf-active { opacity: 1; background: rgba(255,255,255,0.25); }
+.mtf-close-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.mtf-panel-body { padding: 12px 14px; }
+
+.mtf-field { margin-bottom: 10px; }
+.mtf-field label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.mtf-field input, .mtf-field select {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.mtf-hint { font-size: 10px; color: var(--muted); margin-top: 3px; min-height: 12px; }
+.mtf-hint.mtf-error { color: var(--red-text); }
+
+.mtf-tz-suggestions {
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.mtf-tz-suggestion {
+  padding: 6px 9px;
+  font-size: 11px;
+  color: var(--ink);
+  background: var(--surface);
+  cursor: pointer;
+}
+.mtf-tz-suggestion:hover { background: var(--chip-bg); }
+.mtf-tz-suggestion + .mtf-tz-suggestion { border-top: 1px solid var(--border); }
+
+.mtf-field-row { display: flex; gap: 8px; margin-bottom: 10px; }
+
+#mtf-your-tz-other, #mtf-tz-other { margin-top: 6px; }
+.mtf-field-row .mtf-field.mtf-half { margin-bottom: 0; flex: 1; min-width: 0; }
+
+.mtf-options-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.mtf-field.mtf-compact { margin-bottom: 0; flex: 1; }
+
+.mtf-link-btn {
+  background: none;
+  border: none;
+  color: var(--blue-text);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 6px 0;
+  white-space: nowrap;
+}
+.mtf-link-btn:hover { text-decoration: underline; }
+
+.mtf-advanced {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 10px;
+  margin-bottom: 8px;
+}
+.mtf-hours-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  margin-bottom: 7px;
+}
+.mtf-hours-row:last-child { margin-bottom: 0; }
+.mtf-hours-label { width: 50px; color: var(--muted); font-weight: 600; flex-shrink: 0; }
+.mtf-hours-row select { width: auto; flex: 1; padding: 5px 6px; }
+
+.mtf-plan-note { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+.mtf-plan-note strong { color: var(--ink); }
+
+.mtf-limit-notice {
+  font-size: 10px;
+  color: var(--red-text);
+  background: var(--red-soft-bg);
+  border: 1px solid var(--red-soft-border);
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+}
+
+.mtf-stale-notice {
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+}
+.mtf-results.mtf-stale { opacity: 0.55; }
+
+.mtf-find-btn {
+  width: 100%;
+  padding: 9px;
+  border: none;
+  border-radius: 6px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.mtf-find-btn:disabled { background: var(--blue-disabled); }
+
+.mtf-results { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+.mtf-slot-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+.mtf-slot-card.recommended { border-color: var(--green); background: var(--green-soft-bg); }
+.mtf-slot-card.good { border-color: var(--good-border); background: var(--good-bg); }
+
+.mtf-slot-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.mtf-slot-date { font-weight: 600; font-size: 11px; color: var(--ink); }
+.mtf-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+.mtf-badge.recommended { background: var(--green); color: #fff; }
+.mtf-badge.good { background: var(--blue); color: #fff; }
+.mtf-badge.workable { background: var(--workable-bg); color: var(--muted); }
+
+.mtf-slot-times { font-size: 11px; color: var(--muted); margin-bottom: 7px; }
+.mtf-slot-times strong { color: var(--ink); }
+.mtf-slot-warning { color: var(--amber-text); margin-top: 3px; }
+
+.mtf-fallback-notice {
+  font-size: 10px;
+  color: var(--amber-text);
+  background: var(--amber-soft-bg);
+  border: 1px solid var(--amber-soft-border);
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+}
+
+.mtf-badge.outside-hours { background: var(--amber); color: #fff; }
+.mtf-slot-card.outside-hours { border-color: var(--outside-border); background: var(--outside-bg); }
+
+.mtf-slot-actions { display: flex; gap: 6px; }
+.mtf-slot-actions button {
+  flex: 1;
+  font-size: 10px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: inherit;
+}
+.mtf-slot-actions button.mtf-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+.mtf-empty { font-size: 11px; color: var(--muted); text-align: center; padding: 10px; }
+
+.mtf-footer {
+  text-align: center;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.mtf-footer-link { font-size: 10px; color: var(--muted); text-decoration: none; }
+.mtf-footer-link:hover { color: var(--blue-text); text-decoration: underline; }
+
+/* Gmail inline time-zone conversion badge. These are inserted directly
+   into Gmail's own message DOM (not inside #mtf-root), so they can't use
+   the scoped tokens above — following prefers-color-scheme directly here
+   instead (auto only; no manual override, since there's no local root to
+   hang a [data-theme] on for something scattered through page content). */
+.mtf-time-convert {
+  display: inline-block;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #1a73e8;
+  background: #eaf1fd;
+  border-radius: 4px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+@media (prefers-color-scheme: dark) {
+  .mtf-time-convert {
+    color: #8ab4f8;
+    background: #223350;
+  }
+}
+
+/* Google Meet persistent time-zone confirmation badge — deliberately kept
+   as a fixed dark/semi-transparent overlay regardless of theme, since it
+   needs to stay legible over an arbitrary video call background either way. */
+#mtf-meet-badge {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  background: rgba(32, 33, 36, 0.75);
+  color: #fff;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  z-index: 2147483647;
+  pointer-events: none;
+  letter-spacing: 0.01em;
+}
