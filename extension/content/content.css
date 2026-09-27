@@ -180,6 +180,34 @@
 .mtf-hint { font-size: 10px; color: var(--muted); margin-top: 3px; min-height: 12px; }
 .mtf-hint.mtf-error { color: var(--red-text); }
 
+.mtf-your-tz-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 9px;
+}
+.mtf-your-tz-editor .mtf-hint { margin-bottom: 0; }
+.mtf-your-tz-editor label { margin-top: 8px; }
+.mtf-your-tz-editor label:first-child { margin-top: 0; }
+
+.mtf-optional-tag, .mtf-required-tag {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 2px 5px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+.mtf-optional-tag { background: var(--workable-bg); color: var(--muted); }
+.mtf-required-tag { background: var(--blue); color: #fff; }
+
 .mtf-tz-suggestions {
   margin-top: 4px;
   border: 1px solid var(--border);

@@ -6,6 +6,10 @@
   const yourTzSelect = document.getElementById('your-tz-select');
   const yourTzOther = document.getElementById('your-tz-other');
   const yourTzHint = document.getElementById('your-tz-hint');
+  const yourTzDisplay = document.getElementById('your-tz-display');
+  const yourTzDisplayText = document.getElementById('your-tz-display-text');
+  const yourTzChangeBtn = document.getElementById('your-tz-change-btn');
+  const yourTzEditor = document.getElementById('your-tz-editor');
   const detectTzBtn = document.getElementById('detect-tz-btn');
   const prospectEmailInput = document.getElementById('prospect-email');
   const emailHint = document.getElementById('email-hint');
@@ -160,7 +164,7 @@
   // typing "Madrid" or "Casablanca" or "Buenos Aires" surfaces the right
   // zone even though none of those are in the curated dropdown. A typed
   // offset ("GMT+5:30") gets its own suggestion row up top too.
-  function renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl) {
+  function renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl, onChange) {
     const query = otherInput.value.trim();
     suggestionsEl.innerHTML = '';
     if (!query) { suggestionsEl.hidden = true; return; }
@@ -185,6 +189,7 @@
         otherInput.value = item.zone;
         suggestionsEl.hidden = true;
         updateZoneHint(selectEl, otherInput, hintEl);
+        if (onChange) onChange();
         markStale();
       });
       suggestionsEl.appendChild(row);
@@ -192,25 +197,46 @@
     suggestionsEl.hidden = false;
   }
 
-  function wireZoneControl(selectEl, otherInput, hintEl, suggestionsEl) {
+  function wireZoneControl(selectEl, otherInput, hintEl, suggestionsEl, onChange) {
     selectEl.addEventListener('change', () => {
       otherInput.hidden = selectEl.value !== OTHER_VALUE;
       if (!otherInput.hidden) otherInput.focus();
       updateZoneHint(selectEl, otherInput, hintEl);
+      if (onChange) onChange();
     });
     otherInput.addEventListener('input', () => {
       updateZoneHint(selectEl, otherInput, hintEl);
-      renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl);
+      renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl, onChange);
+      if (onChange) onChange();
     });
-    otherInput.addEventListener('focus', () => renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl));
+    otherInput.addEventListener('focus', () => renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl, onChange));
     otherInput.addEventListener('blur', () => { suggestionsEl.hidden = true; });
   }
-  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint, yourTzSuggestions);
+
+  // "Your" time zone reads as a plain confirmation ("You're in New York")
+  // rather than a control to operate, since auto-detect is right the vast
+  // majority of the time — a tester was confused into thinking they had
+  // to manually pick it even though detection had already worked. The
+  // dropdown/free-text editor only appears once "Change" is clicked.
+  function updateYourTzDisplay() {
+    const resolved = TZKit.resolveTimeZoneInput(getZoneRawValue(yourTzSelect, yourTzOther));
+    yourTzDisplayText.textContent = resolved
+      ? `You're in ${TZKit.friendlyZoneLabel(resolved)}`
+      : 'Time zone not set';
+  }
+  yourTzChangeBtn.addEventListener('click', () => {
+    yourTzDisplay.hidden = true;
+    yourTzEditor.hidden = false;
+    (yourTzSelect.value === OTHER_VALUE ? yourTzOther : yourTzSelect).focus();
+  });
+
+  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint, yourTzSuggestions, updateYourTzDisplay);
   wireZoneControl(prospectTzSelect, prospectTzOther, tzHint, prospectTzSuggestions);
 
   detectTzBtn.addEventListener('click', () => {
     setZoneControl(yourTzSelect, yourTzOther, detectedTz);
     updateZoneHint(yourTzSelect, yourTzOther, yourTzHint);
+    updateYourTzDisplay();
   });
 
   // Event title: auto-composed from company/name, but stops being
@@ -232,10 +258,14 @@
 
   // Pasting a prospect's email guesses their name + company so there's
   // less to type by hand. It's plain pattern-matching on the address, not
-  // an AI/network lookup — both guesses land in editable fields.
+  // an AI/network lookup — both guesses land in editable fields. The
+  // email-hint line always shows *something*: a static caption setting
+  // the right expectation (this can't determine their time zone) when
+  // empty, replaced by the actual guess result once there's input.
+  const EMAIL_DEFAULT_CAPTION = emailHint.textContent;
   prospectEmailInput.addEventListener('input', () => {
     const guess = ContactParser.guessFromEmail(prospectEmailInput.value.trim());
-    if (!guess) { emailHint.textContent = ''; return; }
+    if (!guess) { emailHint.textContent = EMAIL_DEFAULT_CAPTION; return; }
 
     if (!prospectNameInput.value.trim() && guess.name) prospectNameInput.value = guess.name;
     if (!prospectCompanyInput.value.trim() && guess.company) prospectCompanyInput.value = guess.company;
@@ -253,6 +283,7 @@
     const prefs = await MeetingStorage.getPreferences();
     setZoneControl(yourTzSelect, yourTzOther, prefs.userTimeZone || detectedTz);
     updateZoneHint(yourTzSelect, yourTzOther, yourTzHint);
+    updateYourTzDisplay();
     userStartSelect.value = String(prefs.userHours.start);
     userEndSelect.value = String(prefs.userHours.end);
     otherStartSelect.value = String(prefs.otherHours.start);
@@ -460,6 +491,8 @@
     if (!userTz) {
       yourTzHint.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
       yourTzHint.classList.add('error');
+      yourTzDisplay.hidden = true;
+      yourTzEditor.hidden = false;
       (yourTzSelect.value === OTHER_VALUE ? yourTzOther : yourTzSelect).focus();
       return;
     }

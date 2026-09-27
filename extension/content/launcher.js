@@ -40,16 +40,23 @@
     </div>
     <div class="mtf-panel-body">
       <div class="mtf-field">
-        <label>Your time zone</label>
-        <select id="mtf-your-tz-select"></select>
-        <input type="text" id="mtf-your-tz-other" placeholder="Any city, zone, or GMT+3 / -7" hidden />
-        <div class="mtf-tz-suggestions" id="mtf-your-tz-suggestions" hidden></div>
-        <div class="mtf-hint" id="mtf-your-hint"></div>
+        <div class="mtf-your-tz-display" id="mtf-your-tz-display">
+          <span id="mtf-your-tz-display-text">Detecting your time zone…</span>
+          <button type="button" id="mtf-your-tz-change-btn" class="mtf-link-btn">Not right? Change</button>
+        </div>
+        <div class="mtf-your-tz-editor" id="mtf-your-tz-editor" hidden>
+          <label>Your time zone</label>
+          <select id="mtf-your-tz-select"></select>
+          <input type="text" id="mtf-your-tz-other" placeholder="Any city, zone, or GMT+3 / -7" hidden />
+          <div class="mtf-tz-suggestions" id="mtf-your-tz-suggestions" hidden></div>
+          <button type="button" id="mtf-detect-tz-btn" class="mtf-link-btn">Use detected zone</button>
+          <div class="mtf-hint" id="mtf-your-hint"></div>
+        </div>
       </div>
       <div class="mtf-field">
-        <label>Prospect email</label>
+        <label>Prospect email <span class="mtf-optional-tag">optional</span></label>
         <input type="email" id="mtf-email" placeholder="e.g. alex@acme.com" />
-        <div class="mtf-hint" id="mtf-email-hint"></div>
+        <div class="mtf-hint" id="mtf-email-hint">Auto-fills their name &amp; company below — you'll still need to pick their time zone.</div>
       </div>
       <div class="mtf-field-row">
         <div class="mtf-field mtf-half">
@@ -62,7 +69,7 @@
         </div>
       </div>
       <div class="mtf-field">
-        <label>Prospect's time zone</label>
+        <label>Prospect's time zone <span class="mtf-required-tag">Required</span></label>
         <select id="mtf-tz-select"></select>
         <input type="text" id="mtf-tz-other" placeholder="Any city, zone, or GMT+3 / -7" hidden />
         <div class="mtf-tz-suggestions" id="mtf-tz-suggestions" hidden></div>
@@ -128,6 +135,11 @@
   const yourTzOther = panel.querySelector('#mtf-your-tz-other');
   const yourTzSuggestions = panel.querySelector('#mtf-your-tz-suggestions');
   const yourTzHint = panel.querySelector('#mtf-your-hint');
+  const yourTzDisplay = panel.querySelector('#mtf-your-tz-display');
+  const yourTzDisplayText = panel.querySelector('#mtf-your-tz-display-text');
+  const yourTzChangeBtn = panel.querySelector('#mtf-your-tz-change-btn');
+  const yourTzEditor = panel.querySelector('#mtf-your-tz-editor');
+  const detectTzBtn = panel.querySelector('#mtf-detect-tz-btn');
   const emailInput = panel.querySelector('#mtf-email');
   const emailHint = panel.querySelector('#mtf-email-hint');
   const nameInput = panel.querySelector('#mtf-name');
@@ -251,7 +263,7 @@
   // typing "Madrid" or "Casablanca" or "Buenos Aires" surfaces the right
   // zone even though none of those are in the curated dropdown. A typed
   // offset ("GMT+5:30") gets its own suggestion row up top too.
-  function renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl) {
+  function renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl, onChange) {
     const query = otherInput.value.trim();
     suggestionsEl.innerHTML = '';
     if (!query) { suggestionsEl.hidden = true; return; }
@@ -276,6 +288,7 @@
         otherInput.value = item.zone;
         suggestionsEl.hidden = true;
         tzLiveHint(selectEl, otherInput, hintEl);
+        if (onChange) onChange();
         markStale();
       });
       suggestionsEl.appendChild(row);
@@ -283,20 +296,45 @@
     suggestionsEl.hidden = false;
   }
 
-  function wireZoneControl(selectEl, otherInput, hintEl, suggestionsEl) {
+  function wireZoneControl(selectEl, otherInput, hintEl, suggestionsEl, onChange) {
     selectEl.addEventListener('change', () => {
       otherInput.hidden = selectEl.value !== OTHER_VALUE;
       if (!otherInput.hidden) otherInput.focus();
       tzLiveHint(selectEl, otherInput, hintEl);
+      if (onChange) onChange();
     });
     otherInput.addEventListener('input', () => {
       tzLiveHint(selectEl, otherInput, hintEl);
-      renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl);
+      renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl, onChange);
+      if (onChange) onChange();
     });
-    otherInput.addEventListener('focus', () => renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl));
+    otherInput.addEventListener('focus', () => renderZoneSuggestions(otherInput, suggestionsEl, selectEl, hintEl, onChange));
     otherInput.addEventListener('blur', () => { suggestionsEl.hidden = true; });
   }
-  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint, yourTzSuggestions);
+
+  // "Your" time zone reads as a plain confirmation ("You're in New York")
+  // rather than a control to operate, since auto-detect is right the vast
+  // majority of the time — a tester was confused into thinking they had
+  // to manually pick it even though detection had already worked. The
+  // dropdown/free-text editor only appears once "Change" is clicked.
+  function updateYourTzDisplay() {
+    const resolved = TZKit.resolveTimeZoneInput(getZoneRawValue(yourTzSelect, yourTzOther));
+    yourTzDisplayText.textContent = resolved
+      ? `You're in ${TZKit.friendlyZoneLabel(resolved)}`
+      : 'Time zone not set';
+  }
+  yourTzChangeBtn.addEventListener('click', () => {
+    yourTzDisplay.hidden = true;
+    yourTzEditor.hidden = false;
+    (yourTzSelect.value === OTHER_VALUE ? yourTzOther : yourTzSelect).focus();
+  });
+  detectTzBtn.addEventListener('click', () => {
+    setZoneControl(yourTzSelect, yourTzOther, detectedTz);
+    tzLiveHint(yourTzSelect, yourTzOther, yourTzHint);
+    updateYourTzDisplay();
+  });
+
+  wireZoneControl(yourTzSelect, yourTzOther, yourTzHint, yourTzSuggestions, updateYourTzDisplay);
   wireZoneControl(tzSelect, tzOther, hintEl, tzSuggestions);
 
   function populateDurationOptions(plan, preferredMinutes) {
@@ -332,6 +370,7 @@
   MeetingStorage.getPreferences().then((prefs) => {
     setZoneControl(yourTzSelect, yourTzOther, prefs.userTimeZone || detectedTz);
     tzLiveHint(yourTzSelect, yourTzOther, yourTzHint);
+    updateYourTzDisplay();
     userStartSelect.value = String(prefs.userHours.start);
     userEndSelect.value = String(prefs.userHours.end);
     otherStartSelect.value = String(prefs.otherHours.start);
@@ -375,9 +414,10 @@
     eventTitleInput.dataset.userEdited = 'true';
   });
 
+  const EMAIL_DEFAULT_CAPTION = emailHint.textContent;
   emailInput.addEventListener('input', () => {
     const guess = ContactParser.guessFromEmail(emailInput.value.trim());
-    if (!guess) { emailHint.textContent = ''; return; }
+    if (!guess) { emailHint.textContent = EMAIL_DEFAULT_CAPTION; return; }
     if (!nameInput.value.trim() && guess.name) nameInput.value = guess.name;
     if (!companyInput.value.trim() && guess.company) companyInput.value = guess.company;
     refreshEventTitleIfNotEdited();
@@ -498,6 +538,8 @@
     if (!userTz) {
       yourTzHint.textContent = 'Not recognized — try a city name or an offset like GMT+3.';
       yourTzHint.classList.add('mtf-error');
+      yourTzDisplay.hidden = true;
+      yourTzEditor.hidden = false;
       (yourTzSelect.value === OTHER_VALUE ? yourTzOther : yourTzSelect).focus();
       return;
     }

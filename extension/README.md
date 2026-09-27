@@ -46,10 +46,21 @@ extension's technical details.
 - **Smart ranking**: slots are scored by how central they land in each
   side's working day (not just "does it technically overlap"), and labeled
   `recommended` / `good` / `workable`.
-- **Editable "your time zone"**: the browser's detected zone is just the
-  default — you can override it (e.g. if you're traveling, or the browser
-  guesses wrong), and it's remembered for next time. Available in the popup
-  and in the in-page widget.
+- **"Your time zone" reads as a confirmation, not a task**: shown as a
+  plain statement ("You're in New York (GMT-4)") rather than a dropdown
+  demanding attention, since auto-detect is correct the vast majority of
+  the time — a tester assumed they had to manually pick it even though
+  detection had already worked. A "Not right? Change" link reveals the
+  full picker (with override + remembering it for next time) for the
+  cases that do need it, e.g. traveling or a misconfigured browser.
+  Available in the popup and in the in-page widget.
+- **The prospect's time zone is visibly the one required field**: tagged
+  "Required," since it's the one thing the extension genuinely can't get
+  on its own. The prospect email field is tagged "optional" and always
+  shows a caption clarifying what it does and doesn't do ("Auto-fills
+  their name & company — you'll still need to pick their time zone"),
+  since a tester's confusion turned out to be this exact false
+  expectation, not a bug in the autofill itself.
 - **Never a dead end**: if no slot falls inside both parties' normal
   working hours anywhere in the next 7 days (common for e.g. US East Coast
   ↔ India under default 9–6 hours — it's a real scheduling problem, not a
