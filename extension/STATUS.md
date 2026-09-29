@@ -26,12 +26,22 @@ with prospects in different time zones without manual UTC math.
 - Fully client-side, no backend, no accounts — everything lives in
   `chrome.storage` on the user's own device.
 - Not yet published anywhere. It's only been distributed as a zip for
-  manual "Load unpacked" testing.
+  manual "Load unpacked" testing (sent to two testers so far).
 - All code is committed and pushed to
   `claude/timezone-meeting-booking-extension-jsnhqn` in this repo — not
-  merged to `main`.
+  merged to `main`. Current version: `manifest.json` → `0.9.0`.
 - See `README.md` in `extension/` for the full feature list, architecture,
   and how the scoring engine works.
+- **Latest round of changes (commit `ae0f594`), from tester feedback:**
+  a tester said the auto-detected "your time zone" still felt like it
+  required manual interaction. Fixed by splitting it into a passive
+  confirmation line ("You're in New York (GMT-4)") with a "Not right?
+  Change" link that reveals the picker only on demand — done in both the
+  popup and the in-page widget. Also: the prospect's time zone field is
+  now tagged "Required" and the prospect email field "optional," with a
+  permanent caption clarifying the email field only autofills name/company
+  and can't detect time zone (it's regex/string matching on the email
+  address — not AI, not IP lookup, never has been).
 
 ## Monetization: decisions made so far
 
@@ -99,6 +109,18 @@ of those platforms' own pages.
 - Only the free plan should go here; nothing about payment processing
   needs to be decided before this step, since it's independent of the
   extension shipping.
+- **Important caveat:** that hosted privacy-policy page is a Claude
+  Artifact, which is **private by default**. Before it can be linked in
+  the Store listing, click **Share** on that page to make it public — this
+  was flagged once already; unconfirmed whether it's been done. It's tied
+  to whichever Claude account published it, not to this repo, so if that
+  becomes inaccessible, the underlying text is safe in `PRIVACY.md` and
+  can be republished as a fresh page (Claude Artifact or any static host)
+  from any account.
+- Still outstanding on the user's side: a real screenshot of the extension
+  in use for the Store listing (needs a browser, which no Claude session
+  in this thread had access to), and actually registering/submitting to
+  the Chrome Web Store developer account.
 
 ## Support: bug reports
 
